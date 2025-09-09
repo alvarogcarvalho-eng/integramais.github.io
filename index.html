@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>integra+ — Gestão com Kanban e IA Kaizen</title>
+  <meta name="description" content="integra+ é um aplicativo de gestão inspirado no Kanban, com um quadro por área e um quadro geral. Uma IA orientada pela filosofia Kaizen guia sua equipe, sugere melhorias e garante a execução das tarefas." />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --bg-soft: #121935;
+      --card: #161e42;
+      --text: #eaf0ff;
+      --muted: #b9c2e0;
+      --brand: #6ee7ff;   /* ciano */
+      --accent: #8b5cf6;  /* roxo */
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 80% -10%, #1a2558 0%, rgba(26,37,88,0) 60%),
+                  radial-gradient(900px 700px at -20% 10%, #0f172a 0%, rgba(15,23,42,0) 60%),
+                  var(--bg);
+      line-height: 1.6;
+    }
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1100px, 92%); margin:0 auto}
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter:saturate(1.2) blur(10px);
+      background: linear-gradient(180deg, rgba(11,16,32,.9), rgba(11,16,32,.6));
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 0;
+    }
+    .brand{display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.5px}
+    .logo{
+      width:34px;height:34px;border-radius:8px;
+      background: conic-gradient(from 90deg, var(--brand), var(--accent));
+      display:grid; place-items:center;
+      box-shadow: 0 6px 18px rgba(110,231,255,.35), inset 0 0 12px rgba(139,92,246,.35);
+      position:relative; overflow:hidden;
+    }
+    .logo::after{
+      content:"+"; font-weight:800; color:#001014; font-size:22px;
+      text-shadow: 0 1px 0 rgba(255,255,255,.35);
+    }
+    .tag{font-size:12px; padding:2px 8px; border:1px solid rgba(255,255,255,.14); border-radius:999px; color:var(--muted)}
+    .actions{display:flex; gap:10px; align-items:center}
+    .btn{
+      display:inline-flex; align-items:center; gap:10px;
+      padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      color:var(--text); font-weight:600; cursor:pointer;
+      transition: transform .06s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.22);}
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(110,231,255,.20), rgba(139,92,246,.15));
+      border-color: rgba(110,231,255,.55);
+      box-shadow: 0 10px 28px rgba(14,165,233,.25);
+    }
+    .btn.ghost{background:transparent}
+    .btn.small{padding:8px 12px; font-size:14px; border-radius:10px}
+    .badge{
+      font-size:12px; font-weight:700; letter-spacing:.4px;
+      padding:6px 10px; border-radius:999px;
+      background:linear-gradient(90deg, rgba(110,231,255,.2), rgba(139,92,246,.2));
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--muted);
+      display:inline-flex; align-items:center; gap:8px;
+    }
+
+    /* Hero */
+    .hero{padding:80px 0 40px; position:relative; overflow:hidden}
+    .grid-hero{display:grid; grid-template-columns:1.2fr 1fr; gap:40px; align-items:center}
+    h1{font-size: clamp(28px, 3.8vw, 48px); line-height:1.15; margin:14px 0 10px}
+    p.lead{font-size: clamp(16px, 2vw, 20px); color:var(--muted); margin:0 0 18px}
+    .cta{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:18px}
+    .hero-card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.1);
+      border-radius: var(--radius);
+      padding:18px; box-shadow: var(--shadow);
+    }
+    .kanban{
+      display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:8px;
+    }
+    .col{
+      background: var(--card);
+      border-radius:12px; padding:12px; min-height:160px;
+      border:1px dashed rgba(255,255,255,.12);
+    }
+    .col h4{margin:0 0 10px; font-size:14px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted)}
+    .chip{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius:10px; padding:8px 10px; margin:6px 0; font-size:13px;
+      box-shadow: inset 0 0 0 1px rgba(110,231,255,.08);
+    }
+    .hint{font-size:12px; color:var(--muted); margin-top:6px}
+
+    /* Sections */
+    section{padding:64px 0; border-top:1px solid rgba(255,255,255,.06)}
+    h2{font-size: clamp(22px, 3vw, 32px); margin:0 0 6px}
+    .sub{color:var(--muted); margin:0 0 12px}
+    .cards{display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; margin-top:16px}
+    .card{background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:18px}
+    .card h3{margin:4px 0 6px; font-size:18px}
+    .card p{margin:0; color:var(--muted)}
+    .speak{display:flex; align-items:center; gap:10px; margin-top:8px}
+    .two{display:grid; grid-template-columns: 1fr 1fr; gap:22px}
+    .list{display:grid; gap:8px; margin:10px 0 0}
+    .list li{margin-left:16px}
+
+    /* Pricing */
+    .pricing{display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; margin-top:16px}
+    .price{background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.1); border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:10px}
+    .price .value{font-size:28px; font-weight:800}
+    .price ul{margin:8px 0 0; padding-left:18px; color:var(--muted)}
+    .price .btn{margin-top:auto}
+
+    /* FAQ */
+    details{background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:14px 16px}
+    details+details{margin-top:10px}
+    summary{cursor:pointer; font-weight:600}
+
+    footer{padding:40px 0; color:var(--muted)}
+    .note{font-size:12px; color:var(--muted)}
+
+    /* Responsive */
+    @media (max-width: 900px){
+      .grid-hero{grid-template-columns:1fr; gap:22px}
+      .cards{grid-template-columns:1fr}
+      .kanban{grid-template-columns:1fr}
+      .two{grid-template-columns:1fr}
+      .pricing{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <span>integra+</span>
+        <span class="tag">Gestão com Kanban & IA Kaizen</span>
+      </div>
+      <div class="actions">
+        <button class="btn small ghost" id="toggle-voice" aria-pressed="false" title="Ligar/Desligar narração">
+          <span aria-hidden="true">🔊</span> Narração
+        </button>
+        <button class="btn small primary" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">
+          Começar agora
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="topo">
+      <div class="container grid-hero">
+        <div>
+          <span class="badge">Novo • Foco em melhoria contínua</span>
+          <h1>integra+ — Um quadro para cada área.<br>Um propósito para toda a empresa.</h1>
+          <p class="lead">Aplicativo de gestão inspirado no <strong>Kanban</strong>: cada área tem seu quadro e há um quadro <strong>geral</strong> para governança. Com uma <strong>IA guiada pela filosofia Kaizen</strong>, o integra+ dá instruções, sugere melhorias e garante que as tarefas avancem até a entrega.</p>
+          <div class="cta">
+            <button class="btn primary" id="hero-demo">Ver demo guiada</button>
+            <button class="btn ghost" id="hero-speak">Ouvir esta seção</button>
+            <span class="hint">Sem instalações • Em minutos sua equipe está integrada</span>
+          </div>
+        </div>
+        <div class="hero-card" aria-label="Visualização do Kanban do integra+">
+          <strong>Quadro Geral</strong>
+          <div class="kanban" role="list" aria-label="Colunas do Kanban">
+            <div class="col">
+              <h4>Backlog</h4>
+              <div class="chip">Levantamento de requisitos</div>
+              <div class="chip">Briefing de marketing</div>
+              <div class="chip">Contratos pendentes</div>
+            </div>
+            <div class="col">
+              <h4>Em andamento</h4>
+              <div class="chip">Implantar CRM</div>
+              <div class="chip">Treinar equipe de vendas</div>
+            </div>
+            <div class="col">
+              <h4>Concluído</h4>
+              <div class="chip">Política de qualidade</div>
+              <div class="chip">Onboarding financeiro</div>
+            </div>
+          </div>
+          <p class="hint">Cada área (Comercial, Operações, Financeiro, etc.) tem seu próprio quadro, conectado ao quadro geral.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="sobre">
+      <div class="container">
+        <h2>Por que o integra+?</h2>
+        <p class="sub">Visibilidade de ponta a ponta, alinhamento entre áreas e disciplina de execução com melhoria contínua.</p>
+        <div class="cards">
+          <div class="card">
+            <h3>Kanban por área</h3>
+            <p>Estruture o fluxo de cada time no seu próprio quadro e personalize políticas de trabalho em progresso.</p>
+            <div class="speak"><button class="btn small ghost speak-btn" data-target="sobre-1">Ouvir</button></div>
+          </div>
+          <div class="card">
+            <h3>Quadro geral</h3>
+            <p>Sincronize prioridades entre times, visualize gargalos e tome decisões com dados em um só lugar.</p>
+            <div class="speak"><button class="btn small ghost speak-btn" data-target="sobre-2">Ouvir</button></div>
+          </div>
+          <div class="card">
+            <h3>IA com filosofia Kaizen</h3>
+            <p>A IA orienta o próximo passo, padroniza processos, audita prazos e sugere melhorias incrementais diariamente.</p>
+            <div class="speak"><button class="btn small ghost speak-btn" data-target="sobre-3">Ouvir</button></div>
+          </div>
+        </div>
+        <div class="note" id="sobre-1" hidden>Kanban por área: cada time desenha seu fluxo, define limites de trabalho em progresso e ganha foco no que realmente gera valor.</div>
+        <div class="note" id="sobre-2" hidden>Quadro geral: a direção enxerga tudo. Prioridades, dependências e gargalos entre áreas aparecem com clareza.</div>
+        <div class="note" id="sobre-3" hidden>IA Kaizen: a cada ciclo, pequenas melhorias. A IA instrui, padroniza, fiscaliza prazos e documenta lições aprendidas.</div>
+      </div>
+    </section>
+
+    <section id="como">
+      <div class="container two">
+        <div>
+          <h2>Como funciona</h2>
+          <p class="sub">Três camadas de gestão, um único ritmo operacional.</p>
+          <ol class="list">
+            <li><strong>Quadros por área</strong> — Comercial, Operações, Financeiro, RH, etc.</li>
+            <li><strong>Quadro geral</strong> — Integra as entregas por objetivo/OKR e SLA.</li>
+            <li><strong>IA Kaizen</strong> — Gera checklists, avisa responsáveis, e propõe melhoria contínua.</li>
+          </ol>
+          <div class="speak"><button class="btn small ghost" id="como-speak">Ouvir esta seção</button></div>
+        </div>
+        <div class="card">
+          <h3>Exemplos de ações da IA</h3>
+          <ul class="list">
+            <li>“Defina o responsável e o prazo para esta tarefa.”</li>
+            <li>“Há 5 itens bloqueados no Financeiro há 3 dias.”</li>
+            <li>“Sugestão Kaizen: padronizar checklist de entrega ao cliente.”</li>
+            <li>“Reunião de 15 min: revisar gargalos do quadro geral.”</li>
+          </ul>
+          <div class="speak"><button class="btn small ghost" id="ia-speak">Ouvir exemplos</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="recursos">
+      <div class="container">
+        <h2>Recursos principais</h2>
+        <p class="sub">Feitos para escalar do pequeno ao enterprise.</p>
+        <div class="cards">
+          <div class="card"><h3>Limites WIP por coluna</h3><p>Evite sobrecarga e mantenha fluxo estável.</p></div>
+          <div class="card"><h3>Templates de processos</h3><p>Padronize tarefas recorrentes.</p></div>
+          <div class="card"><h3>Playbooks com IA</h3><p>Instruções contextuais para executar melhor.</p></div>
+          <div class="card"><h3>Métricas de fluxo</h3><p>Lead time, throughput e taxa de bloqueios.</p></div>
+          <div class="card"><h3>Alertas e SLA</h3><p>Nada fica para trás: prazos sob controle.</p></div>
+          <div class="card"><h3>Integrações</h3><p>Calendário, e-mail e ferramentas de comunicação.</p></div>
+        </div>
+        <div class="speak"><button class="btn small ghost" id="recursos-speak">Ouvir recursos</button></div>
+      </div>
+    </section>
+
+    <section id="beneficios">
+      <div class="container two">
+        <div>
+          <h2>Benefícios</h2>
+          <ul class="list">
+            <li>Execução disciplinada sem burocracia.</li>
+            <li>Comunicação entre áreas mais clara.</li>
+            <li>Decisões com base em dados reais.</li>
+            <li>Mais previsibilidade de entrega.</li>
+          </ul>
+          <div class="speak"><button class="btn small ghost" id="beneficios-speak">Ouvir benefícios</button></div>
+        </div>
+        <div class="card">
+          <h3>Filosofia Kaizen na prática</h3>
+          <p>Pequenas melhorias todos os dias. O integra+ transforma boas intenções em hábitos da equipe.</p>
+          <div class="speak"><button class="btn small ghost" id="kaizen-speak">Ouvir Kaizen</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="precos">
+      <div class="container">
+        <h2>Planos simples</h2>
+        <p class="sub">Comece pequeno, cresça com a sua empresa.</p>
+        <div class="pricing">
+          <div class="price">
+            <div class="value">Starter</div>
+            <div class="muted">Para times até 5 pessoas</div>
+            <ul>
+              <li>Quadros ilimitados por área</li>
+              <li>Checklists e cartões</li>
+              <li>Métricas básicas</li>
+            </ul>
+            <button class="btn">Experimentar</button>
+          </div>
+          <div class="price" style="border-color: rgba(110,231,255,.5); box-shadow: 0 12px 36px rgba(110,231,255,.15)">
+            <div class="value">Pro</div>
+            <div class="muted">Para empresas em crescimento</div>
+            <ul>
+              <li>Quadro geral + OKRs</li>
+              <li>Playbooks com IA</li>
+              <li>Alertas de SLA</li>
+            </ul>
+            <button class="btn primary">Começar</button>
+          </div>
+          <div class="price">
+            <div class="value">Enterprise</div>
+            <div class="muted">Para operação com governança</div>
+            <ul>
+              <li>Integrações avançadas</li>
+              <li>Controles de acesso</li>
+              <li>Suporte dedicado</li>
+            </ul>
+            <button class="btn">Falar com vendas</button>
+          </div>
+        </div>
+        <p class="note">Valores e moeda podem variar conforme região. Solicite proposta.</p>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="container">
+        <h2>Perguntas frequentes</h2>
+        <details>
+          <summary>O que é Kanban?</summary>
+          <p>É um método visual de gestão do fluxo de trabalho. No integra+, cada área tem um quadro com colunas, limites e políticas claras.</p>
+        </details>
+        <details>
+          <summary>O que significa Kaizen?</summary>
+          <p>Kaizen é melhoria contínua. Nossa IA aplica esse princípio para sugerir pequenos avanços todos os dias.</p>
+        </details>
+        <details>
+          <summary>Como a IA ajuda na prática?</summary>
+          <p>Ela orienta o próximo passo, automatiza checagens, aponta gargalos e registra lições aprendidas para padronizar o que funciona.</p>
+        </details>
+        <div class="speak" style="margin-top:12px"><button class="btn small ghost" id="faq-speak">Ouvir FAQ</button></div>
+      </div>
+    </section>
+
+    <section id="cta">
+      <div class="container two">
+        <div>
+          <h2>Pronto para integrar sua operação?</h2>
+          <p class="sub">Crie seu espaço, convide seu time e comece a operar com ritmo, foco e melhoria contínua.</p>
+          <div class="speak"><button class="btn primary" id="cta-speak">Ouvir chamada</button></div>
+        </div>
+        <form class="card" onsubmit="event.preventDefault(); alert('Obrigado! Em breve entraremos em contato.');">
+          <label for="email">Seu e-mail</label>
+          <input id="email" required type="email" placeholder="voce@empresa.com"
+                 style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text)">
+          <label for="empresa" style="margin-top:10px; display:block">Empresa</label>
+          <input id="empresa" type="text" placeholder="Nome da empresa"
+                 style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text)">
+          <button class="btn primary" style="margin-top:12px; width:100%">Quero o integra+</button>
+          <p class="hint">Prometemos não fazer spam.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div>&copy; <span id="year"></span> integra+. Todos os direitos reservados.</div>
+      <div class="note">Feito com foco em fluxo, pessoas e melhoria contínua.</div>
+    </div>
+  </footer>
+
+  <script>
+    // Utilidades
+    const $ = (sel) => document.querySelector(sel);
+    const $all = (sel) => Array.from(document.querySelectorAll(sel));
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Verificação de suporte à síntese de voz
+    const supportsSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+    const voiceToggle = $('#toggle-voice');
+    let narrationEnabled = supportsSpeech;
+
+    if(!supportsSpeech){
+      voiceToggle.setAttribute('disabled','disabled');
+      voiceToggle.title = 'A narração não é suportada neste navegador.';
+      voiceToggle.textContent = 'Narração indisponível';
+    }
+
+    function speak(text, rate=1){
+      if(!narrationEnabled || !supportsSpeech || !text) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'pt-BR';
+      // tenta escolher voz pt-BR se disponível
+      const pickVoice = () => {
+        const voices = speechSynthesis.getVoices();
+        const br = voices.find(v => v.lang.toLowerCase().startsWith('pt-br'));
+        if(br) u.voice = br;
+        speechSynthesis.speak(u);
+      };
+      if(speechSynthesis.getVoices().length) pickVoice();
+      else speechSynthesis.onvoiceschanged = pickVoice;
+    }
+
+    function gatherSectionText(el){
+      // Junta títulos e parágrafos visíveis para falar
+      const parts = [];
+      el.querySelectorAll('h1,h2,h3,p,li,summary').forEach(n => {
+        const t = n.innerText.trim();
+        if(t) parts.push(t);
+      });
+      return parts.join('. ');
+    }
+
+    // Botões globais
+    voiceToggle?.addEventListener('click', () => {
+      narrationEnabled = !narrationEnabled;
+      voiceToggle.setAttribute('aria-pressed', String(narrationEnabled));
+      voiceToggle.innerHTML = (narrationEnabled ? '🔊 Narração' : '🔈 Narração');
+      if(!narrationEnabled) speechSynthesis.cancel();
+    });
+
+    // Hero
+    $('#hero-speak')?.addEventListener('click', () => {
+      speak(gatherSectionText($('#topo')));
+    });
+    $('#hero-demo')?.addEventListener('click', () => {
+      const script = "Bem-vinda ao integra+. Aqui, cada área da empresa tem o seu quadro Kanban, e o quadro geral alinha tudo. Nossa IA, inspirada no Kaizen, guia o próximo passo e sugere melhorias contínuas. Vamos começar?";
+      speak(script);
+      document.getElementById('cta').scrollIntoView({behavior:'smooth'});
+    });
+
+    // Cards "Por que o integra+" por botão individual
+    $all('.speak-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-target');
+        const text = document.getElementById(id)?.innerText || gatherSectionText(btn.closest('.card'));
+        speak(text);
+      });
+    });
+
+    // Outras seções
+    $('#como-speak')?.addEventListener('click', () => speak(gatherSectionText($('#como'))));
+    $('#ia-speak')?.addEventListener('click', () => speak("Exemplos da IA: Defina o responsável e o prazo para esta tarefa. Há cinco itens bloqueados no Financeiro há três dias. Sugestão Kaizen: padronizar checklist de entrega ao cliente. Reunião de quinze minutos para revisar gargalos do quadro geral."));
+    $('#recursos-speak')?.addEventListener('click', () => speak(gatherSectionText($('#recursos'))));
+    $('#beneficios-speak')?.addEventListener('click', () => speak(gatherSectionText($('#beneficios'))));
+    $('#kaizen-speak')?.addEventListener('click', () => speak("Kaizen significa melhoria contínua. No integra+, todos os dias a IA sugere pequenos ajustes que somam grandes resultados."));
+    $('#faq-speak')?.addEventListener('click', () => speak(gatherSectionText($('#faq'))));
+    $('#cta-speak')?.addEventListener('click', () => speak("Pronta para integrar sua operação? Crie seu espaço, convide seu time e comece a operar com ritmo, foco e melhoria contínua."));
+
+    // Acessibilidade: pausar com ESC
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape'){ speechSynthesis?.cancel(); }
+    });
+  </script>
+</body>
+</html>
