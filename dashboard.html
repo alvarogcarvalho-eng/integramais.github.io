@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -28,7 +27,9 @@
     window.auth = getAuth(window.firebaseApp);
     window.db = getFirestore(window.firebaseApp);
 
-    // Autenticar o usuário
+    // Remover a autenticação
+    // O código abaixo foi removido para não exigir autenticação
+    /*
     async function authenticate() {
         try {
             if (initialAuthToken) {
@@ -42,9 +43,10 @@
             window.showModal('Erro de autenticação.', error.message);
         }
     }
+    window.authenticate = authenticate;
+    */
 
     // Exportar funções para o escopo global
-    window.authenticate = authenticate;
     window.onAuthStateChanged = onAuthStateChanged;
     window.doc = doc;
     window.setDoc = setDoc;
@@ -452,7 +454,7 @@
     <main>
         <div class="board-header">
             <div>
-              <p style="margin:0; font-size:14px; color:var(--muted)">Bem-vindo(a), <span id="user-info">Carregando...</span></p>
+              <p style="margin:0; font-size:14px; color:var(--muted)">Bem-vindo(a), <span id="user-info">Quadro Público</span></p>
               <h1 id="board-title">Quadro de Operações</h1>
             </div>
             <button class="btn primary small" id="add-task-btn">
@@ -530,8 +532,9 @@
     
     // Variáveis de estado
     let draggedItem = null;
-    let authUser = null;
-    let dbCollectionPath = '';
+    let authUser = null; // authUser não será mais usado, mas a variável é mantida
+    // Define um caminho de coleção estático, não dependente de autenticação
+    const dbCollectionPath = 'public_tasks'; 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
     // ####################### Funções de UI e Acessibilidade #######################
@@ -633,11 +636,7 @@
     // ####################### Funções de Interação com Firestore #######################
     
     window.addTask = async function(status) {
-        if (!authUser) {
-            showModal('Erro', 'Usuário não autenticado. Tente recarregar a página.');
-            return;
-        }
-
+        // A checagem de autenticação foi removida
         const input = document.getElementById(`new-task-${status}`);
         const taskText = input.value.trim();
         if (!taskText) {
@@ -662,10 +661,7 @@
     }
 
     window.updateTask = async function(taskId, newData) {
-        if (!authUser) {
-             showModal('Erro', 'Usuário não autenticado. Tente recarregar a página.');
-             return;
-        }
+        // A checagem de autenticação foi removida
         try {
             const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
             await window.updateDoc(taskDocRef, newData);
@@ -679,10 +675,7 @@
         const taskId = button.closest('.kanban-task').getAttribute('data-id');
         const confirmDelete = await showModal('Confirmação', 'Tem certeza que deseja excluir esta tarefa?', true);
         if (confirmDelete) {
-            if (!authUser) {
-                showModal('Erro', 'Usuário não autenticado. Tente recarregar a página.');
-                return;
-            }
+            // A checagem de autenticação foi removida
             try {
                 const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
                 await window.deleteDoc(taskDocRef);
@@ -864,33 +857,17 @@
             }
         });
 
-        // Autentica e inicia a escuta do banco
-        window.onAuthStateChanged(window.auth, (user) => {
-            if (user) {
-                authUser = user;
-                const userId = authUser.uid;
-                const companyName = 'Sua Empresa';
-                const userEmail = 'seu.email@empresa.com';
+        // Configura a interface para o modo público
+        userInfoSpan.textContent = 'Quadro Público';
+        document.getElementById('board-title').textContent = 'Quadro de Operações Público';
 
-                userInfoSpan.textContent = `Usuário ID: ${userId}`;
-                document.getElementById('board-title').textContent = `Quadro de Operações de ${companyName}`;
-                
-                // Define o caminho da coleção com base no usuário autenticado
-                dbCollectionPath = `/artifacts/${appId}/users/${userId}/tasks`;
-                
-                // Real-time listener para a coleção de tarefas
-                window.onSnapshot(window.collection(window.db, dbCollectionPath), (querySnapshot) => {
-                    const tasks = [];
-                    querySnapshot.forEach((doc) => {
-                        tasks.push({ id: doc.id, ...doc.data() });
-                    });
-                    renderTasks(tasks);
-                });
-
-            } else {
-                console.log("Nenhum usuário logado. Autenticando anonimamente.");
-                window.authenticate();
-            }
+        // Real-time listener para a coleção de tarefas
+        window.onSnapshot(window.collection(window.db, dbCollectionPath), (querySnapshot) => {
+            const tasks = [];
+            querySnapshot.forEach((doc) => {
+                tasks.push({ id: doc.id, ...doc.data() });
+            });
+            renderTasks(tasks);
         });
     });
 
