@@ -27,9 +27,6 @@
     window.auth = getAuth(window.firebaseApp);
     window.db = getFirestore(window.firebaseApp);
 
-    // Remover a autenticação
-    // O código abaixo foi removido para não exigir autenticação
-    /*
     async function authenticate() {
         try {
             if (initialAuthToken) {
@@ -44,10 +41,10 @@
         }
     }
     window.authenticate = authenticate;
-    */
 
     // Exportar funções para o escopo global
     window.onAuthStateChanged = onAuthStateChanged;
+    window.signOut = signOut;
     window.doc = doc;
     window.setDoc = setDoc;
     window.updateDoc = updateDoc;
@@ -259,13 +256,13 @@
         border-top: 1px dashed rgba(255,255,255,.08);
     }
     .add-task input{
-        width: calc(100% - 70px);
+        width: 100%;
         padding: 10px;
         border-radius: 8px;
         border: 1px solid rgba(255,255,255,.2);
         background: rgba(255,255,255,.05);
         color: var(--text);
-        margin-right: 8px;
+        margin-bottom: 8px;
     }
     .add-task button{
         padding: 10px 14px;
@@ -275,6 +272,10 @@
         color: var(--bg);
         font-weight: 600;
         cursor: pointer;
+    }
+    .add-task-btn-container {
+      display: flex;
+      justify-content: center;
     }
 
     /* IA Kaizen Section */
@@ -419,14 +420,14 @@
         </svg>
         <span>Meus Quadros</span>
       </a>
-      <a href="#" class="nav-item">
+      <a href="#" class="nav-item" onclick="showGenericModal('Relatórios', 'A funcionalidade de relatórios está em desenvolvimento.')">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
         </svg>
         <span>Relatórios</span>
       </a>
-      <a href="#" class="nav-item">
+      <a href="#" class="nav-item" onclick="showCompanyReport()">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.125A7.5 7.5 0 0 1 12 21.75c-2.41 0-4.706-.568-6.733-1.936m9.546-3.04A9 9 0 0 0 12 18.75c-2.305 0-4.47-.612-6.337-1.76M9 4.5L12 3m-10 16.5h16.5v-.525m-6-.81L12 18m-8.72-6H.75m19.5 0h.75m-4.5 9V.75m7.5 11.25H21M4.5 2.25H9m0 0H2.25v2.25M9 2.25v2.25m8.25-2.25H21m0 0h-6.75V4.5m6.75-2.25v2.25M12 2.25v18" />
         </svg>
@@ -434,14 +435,14 @@
       </a>
     </nav>
     <div class="footer-nav">
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" onclick="showGenericModal('Configurações', 'As configurações estão em desenvolvimento.')">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.502c.55 0 1.02.398 1.11.94l.213 1.281c.061.365.331.644.68.784a1.864 1.864 0 0 0 1.606.275c.34-.142.6-.367.766-.622l1.28-1.281c.539-.539 1.399-.54 1.938 0 1.157 1.159 1.157 3.043 0 4.199l-1.281 1.28c-.255.166-.48.426-.622.766a1.864 1.864 0 0 0 .275 1.606c.14.349.42.619.785.68l1.28.213c.542.09.94.56 1.11.94" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
             </svg>
             <span>Configurações</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" onclick="signOutUser()">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 6.75 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
             </svg>
@@ -470,8 +471,12 @@
                 <h2>A Fazer</h2>
                 <div class="kanban-tasks" data-status="todo"></div>
                 <div class="add-task">
-                    <input type="text" placeholder="Adicionar nova tarefa..." id="new-task-todo">
-                    <button onclick="addTask('todo')">+</button>
+                    <input type="text" placeholder="Tarefa..." id="new-task-title-todo">
+                    <input type="text" placeholder="Responsável..." id="new-task-responsible-todo">
+                    <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-todo">
+                    <div class="add-task-btn-container">
+                      <button onclick="addTask('todo')">Adicionar</button>
+                    </div>
                 </div>
             </div>
 
@@ -479,8 +484,12 @@
                 <h2>Fazendo</h2>
                 <div class="kanban-tasks" data-status="doing"></div>
                 <div class="add-task">
-                    <input type="text" placeholder="Adicionar nova tarefa..." id="new-task-doing">
-                    <button onclick="addTask('doing')">+</button>
+                    <input type="text" placeholder="Tarefa..." id="new-task-title-doing">
+                    <input type="text" placeholder="Responsável..." id="new-task-responsible-doing">
+                    <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-doing">
+                    <div class="add-task-btn-container">
+                      <button onclick="addTask('doing')">Adicionar</button>
+                    </div>
                 </div>
             </div>
 
@@ -488,8 +497,12 @@
                 <h2>Feito</h2>
                 <div class="kanban-tasks" data-status="done"></div>
                 <div class="add-task">
-                    <input type="text" placeholder="Adicionar nova tarefa..." id="new-task-done">
-                    <button onclick="addTask('done')">+</button>
+                    <input type="text" placeholder="Tarefa..." id="new-task-title-done">
+                    <input type="text" placeholder="Responsável..." id="new-task-responsible-done">
+                    <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-done">
+                    <div class="add-task-btn-container">
+                      <button onclick="addTask('done')">Adicionar</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -532,9 +545,8 @@
     
     // Variáveis de estado
     let draggedItem = null;
-    let authUser = null; // authUser não será mais usado, mas a variável é mantida
-    // Define um caminho de coleção estático, não dependente de autenticação
-    const dbCollectionPath = 'public_tasks'; 
+    let authUser = null;
+    let dbCollectionPath = '';
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
     // ####################### Funções de UI e Acessibilidade #######################
@@ -562,6 +574,11 @@
                 resolve(false);
             };
         });
+    }
+
+    // Função genérica para exibir um modal
+    window.showGenericModal = function(title, message) {
+        showModal(title, message);
     }
     
     // Simulação da funcionalidade de voz
@@ -636,24 +653,36 @@
     // ####################### Funções de Interação com Firestore #######################
     
     window.addTask = async function(status) {
-        // A checagem de autenticação foi removida
-        const input = document.getElementById(`new-task-${status}`);
-        const taskText = input.value.trim();
-        if (!taskText) {
+        if (!authUser) {
+            showModal('Erro', 'Você precisa estar logado para adicionar tarefas.');
+            return;
+        }
+        const titleInput = document.getElementById(`new-task-title-${status}`);
+        const responsibleInput = document.getElementById(`new-task-responsible-${status}`);
+        const deadlineInput = document.getElementById(`new-task-deadline-${status}`);
+
+        const taskTitle = titleInput.value.trim();
+        const taskResponsible = responsibleInput.value.trim();
+        const taskDeadline = deadlineInput.value.trim();
+        
+        if (!taskTitle) {
+            showModal('Erro', 'O título da tarefa é obrigatório.');
             return;
         }
         
         const newTask = {
-            title: taskText,
-            responsible: null,
-            deadline: null,
+            title: taskTitle,
+            responsible: taskResponsible || null,
+            deadline: taskDeadline || null,
             status: status,
             createdAt: new Date()
         };
         
         try {
             await window.addDoc(window.collection(window.db, dbCollectionPath), newTask);
-            input.value = '';
+            titleInput.value = '';
+            responsibleInput.value = '';
+            deadlineInput.value = '';
         } catch (error) {
             showModal('Erro ao adicionar tarefa', error.message);
             console.error('Erro ao adicionar tarefa:', error);
@@ -661,7 +690,10 @@
     }
 
     window.updateTask = async function(taskId, newData) {
-        // A checagem de autenticação foi removida
+        if (!authUser) {
+            showModal('Erro', 'Você precisa estar logado para atualizar tarefas.');
+            return;
+        }
         try {
             const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
             await window.updateDoc(taskDocRef, newData);
@@ -672,10 +704,13 @@
     }
 
     window.deleteTask = async function(button) {
+        if (!authUser) {
+            showModal('Erro', 'Você precisa estar logado para deletar tarefas.');
+            return;
+        }
         const taskId = button.closest('.kanban-task').getAttribute('data-id');
         const confirmDelete = await showModal('Confirmação', 'Tem certeza que deseja excluir esta tarefa?', true);
         if (confirmDelete) {
-            // A checagem de autenticação foi removida
             try {
                 const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
                 await window.deleteDoc(taskDocRef);
@@ -732,6 +767,11 @@
     // ####################### Lógica do Drag and Drop #######################
 
     kanbanBoard.addEventListener('dragstart', (e) => {
+        if (!authUser) {
+             showModal('Erro', 'Você precisa estar logado para mover tarefas.');
+             e.preventDefault();
+             return;
+        }
         if (e.target.classList.contains('kanban-task')) {
             draggedItem = e.target;
             setTimeout(() => {
@@ -837,17 +877,29 @@
         }
     }
 
+    // ####################### Funções para os botões de navegação #######################
+
+    window.showCompanyReport = function() {
+        showModal('Relatório Geral da Empresa', 'Este é um espaço reservado para um relatório completo de todas as tarefas da empresa. No momento, esta funcionalidade está em desenvolvimento.');
+    }
+
+    window.signOutUser = async function() {
+        try {
+            await window.signOut(window.auth);
+            showModal('Sessão Encerrada', 'Você foi desconectado(a) com sucesso. Por favor, recarregue a página para acessar novamente.');
+            // Opcional: Redirecionar para a página de login ou recarregar
+            // setTimeout(() => window.location.reload(), 2000);
+        } catch (error) {
+            showModal('Erro ao Sair', error.message);
+            console.error('Erro ao sair:', error);
+        }
+    }
+
     // ####################### Inicialização #######################
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('add-task-btn').addEventListener('click', () => {
-            const taskInput = document.getElementById('new-task-todo');
-            const taskText = taskInput.value.trim();
-            if (taskText) {
-                addTask('todo');
-            } else {
-                showModal('Nova Tarefa', 'Digite um nome para a tarefa.');
-            }
+            showModal('Adicionar Tarefa', 'Por favor, use os campos abaixo das colunas para adicionar uma nova tarefa.');
         });
         
         // Esconder menu de configurações ao clicar fora
@@ -857,17 +909,33 @@
             }
         });
 
-        // Configura a interface para o modo público
-        userInfoSpan.textContent = 'Quadro Público';
-        document.getElementById('board-title').textContent = 'Quadro de Operações Público';
+        // Autentica e inicia a escuta do banco
+        window.onAuthStateChanged(window.auth, (user) => {
+            if (user) {
+                authUser = user;
+                const userId = authUser.uid;
+                const companyName = 'Sua Empresa';
+                const userEmail = 'seu.email@empresa.com';
 
-        // Real-time listener para a coleção de tarefas
-        window.onSnapshot(window.collection(window.db, dbCollectionPath), (querySnapshot) => {
-            const tasks = [];
-            querySnapshot.forEach((doc) => {
-                tasks.push({ id: doc.id, ...doc.data() });
-            });
-            renderTasks(tasks);
+                userInfoSpan.textContent = `Usuário ID: ${userId}`;
+                document.getElementById('board-title').textContent = `Quadro de Operações de ${companyName}`;
+                
+                // Define o caminho da coleção com base no usuário autenticado
+                dbCollectionPath = `/artifacts/${appId}/users/${userId}/tasks`;
+                
+                // Real-time listener para a coleção de tarefas
+                window.onSnapshot(window.collection(window.db, dbCollectionPath), (querySnapshot) => {
+                    const tasks = [];
+                    querySnapshot.forEach((doc) => {
+                        tasks.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderTasks(tasks);
+                });
+
+            } else {
+                console.log("Nenhum usuário logado. Autenticando anonimamente.");
+                window.authenticate();
+            }
         });
     });
 
