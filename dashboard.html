@@ -13,17 +13,18 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, addDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    window.setLogLevel = setLogLevel;
-    window.setLogLevel('debug');
     
     // Variáveis globais obrigatórias injetadas pelo ambiente Canvas
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    // Inicializar Firebase
+    // ####################### Inicialização do Firebase #######################
+    window.setLogLevel = setLogLevel;
+    window.setLogLevel('debug');
+    
     window.firebaseApp = initializeApp(firebaseConfig);
     window.auth = getAuth(window.firebaseApp);
     window.db = getFirestore(window.firebaseApp);
@@ -53,8 +54,6 @@
     window.onSnapshot = onSnapshot;
     window.collection = collection;
     window.query = query;
-    window.getDoc = getDoc;
-    window.getDocs = getDocs;
     window.addDoc = addDoc;
   </script>
 
@@ -382,6 +381,16 @@
         margin-bottom: 20px;
         color: var(--muted);
     }
+    
+    .modal-content input {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,.2);
+        background: rgba(255,255,255,.05);
+        color: var(--text);
+        margin-bottom: 8px;
+    }
 
     .modal-actions {
         display: flex;
@@ -410,7 +419,7 @@
     @media (max-width: 900px){
       body {flex-direction: column;}
       aside {width: 100%; padding: 10px 0; border-right: none; border-bottom: 1px solid rgba(255,255,255,.06); flex-direction: row; justify-content: start; overflow-x: auto;}
-      aside .brand {display: none;} /* Hide brand on small screens */
+      aside .brand {display: none;} /* Oculta a marca em telas pequenas */
       aside .nav-item {padding: 8px 15px; flex-shrink: 0;}
       aside .footer-nav {margin-top: 0;}
       main {padding: 15px;}
@@ -585,7 +594,7 @@
   </div>
 
   <script type="module">
-    // Referências do DOM
+    // ####################### Variáveis e Referências do DOM #######################
     const kanbanView = document.getElementById('kanban-view');
     const reportsView = document.getElementById('reports-view');
     const companyView = document.getElementById('company-view');
@@ -600,7 +609,6 @@
     const kaizenSuggestions = document.getElementById('kaizen-suggestions');
     const userInfoSpan = document.getElementById('user-info');
     
-    // Variáveis de estado
     let draggedItem = null;
     let authUser = null;
     let dbCollectionPath = '';
@@ -608,38 +616,21 @@
 
     // ####################### Funções de UI e Acessibilidade #######################
 
-    // Função para renderizar a visualização correta
     function renderView(viewName) {
-        // Oculta todas as visualizações
+        // Oculta todas as visualizações e remove a classe 'active'
+        document.querySelectorAll('.other-views').forEach(view => view.style.display = 'none');
         kanbanView.style.display = 'none';
-        reportsView.style.display = 'none';
-        companyView.style.display = 'none';
-        settingsView.style.display = 'none';
-        
-        // Remove a classe 'active' de todos os itens de navegação
         navItems.forEach(item => item.classList.remove('active'));
 
-        // Exibe a visualização correta e atualiza o estado de ativo
+        // Exibe a visualização correta
+        const viewToShow = document.getElementById(`${viewName}-view`);
+        if (viewToShow) {
+            viewToShow.style.display = 'block';
+        }
+        
         const navItem = document.querySelector(`[data-view="${viewName}"]`);
         if (navItem) {
             navItem.classList.add('active');
-        }
-
-        switch(viewName) {
-            case 'kanban':
-                kanbanView.style.display = 'block';
-                break;
-            case 'reports':
-                reportsView.style.display = 'block';
-                break;
-            case 'company':
-                companyView.style.display = 'block';
-                break;
-            case 'settings':
-                settingsView.style.display = 'block';
-                break;
-            default:
-                kanbanView.style.display = 'block';
         }
     }
 
@@ -669,7 +660,7 @@
                 modalConfirmBtn.textContent = 'Confirmar';
                 modalCancelBtn.style.display = 'inline-block';
             }
-
+            
             modalConfirmBtn.onclick = () => {
                 messageModal.style.display = 'none';
                 resolve(true);
@@ -681,11 +672,36 @@
         });
     }
 
-    // Função genérica para exibir um modal
-    window.showGenericModal = function(title, message) {
-        showModal(title, message);
-    }
-    
+    // Função para mostrar um modal de prompt com campo de texto
+    window.showPromptModal = function(title, message, defaultValue = '') {
+        return new Promise(resolve => {
+            modalTitle.textContent = title;
+            modalMessage.textContent = ''; // Limpa a mensagem padrão
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = message;
+            input.value = defaultValue;
+            modalContent.insertBefore(input, modalActions);
+            
+            modalConfirmBtn.textContent = 'Salvar';
+            modalCancelBtn.style.display = 'inline-block';
+            messageModal.style.display = 'flex';
+            
+            modalConfirmBtn.onclick = () => {
+                messageModal.style.display = 'none';
+                input.remove();
+                resolve(input.value);
+            };
+            modalCancelBtn.onclick = () => {
+                messageModal.style.display = 'none';
+                input.remove();
+                resolve(null);
+            };
+            
+            input.focus();
+        });
+    };
+
     // Simulação da funcionalidade de voz
     const supportsSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
     window.speak = function(text, rate=1){
@@ -783,7 +799,7 @@
             responsible: taskResponsible || null,
             deadline: taskDeadline || null,
             status: status,
-            createdAt: new Date()
+            createdAt: new Date().toISOString()
         };
         
         try {
@@ -876,47 +892,6 @@
         menu.hidden = !menu.hidden;
     }
     
-    // ####################### Lógica de Prompt do Modal #######################
-    // Função para mostrar um modal de prompt
-    window.showPromptModal = function(title, message, defaultValue = '') {
-        return new Promise(resolve => {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = message;
-            input.value = defaultValue;
-            input.style.width = '100%';
-            input.style.padding = '8px';
-            input.style.marginBottom = '10px';
-            input.style.color = 'var(--text)';
-            input.style.backgroundColor = 'var(--bg)';
-            input.style.border = '1px solid var(--muted)';
-            input.style.borderRadius = '6px';
-            
-            modalMessage.replaceWith(input);
-            
-            modalConfirmBtn.textContent = 'Salvar';
-            modalCancelBtn.style.display = 'inline-block';
-            
-            messageModal.style.display = 'flex';
-            
-            modalConfirmBtn.onclick = () => {
-                messageModal.style.display = 'none';
-                input.replaceWith(modalMessage);
-                resolve(input.value);
-            };
-            modalCancelBtn.onclick = () => {
-                messageModal.style.display = 'none';
-                input.replaceWith(modalMessage);
-                resolve(null);
-            };
-            
-            input.focus();
-        });
-    };
-
     // ####################### Lógica do Drag and Drop #######################
 
     kanbanBoard.addEventListener('dragstart', (e) => {
@@ -966,7 +941,6 @@
                 if (newStatus === 'done') {
                     updateData.deadline = `Concluído: ${new Date().toLocaleDateString('pt-BR')}`;
                 } else if (currentStatus === 'done') {
-                    // Restaurar o campo de prazo se sair de "Feito"
                     const currentDeadline = draggedItem.querySelector('.meta span:nth-child(2)').textContent.replace('Prazo: ', '');
                     updateData.deadline = currentDeadline;
                 }
@@ -1004,32 +978,40 @@
         const doneTasks = tasksByStatus.done || [];
 
         // Sugestão: Checklist para tarefas sem responsável
-        todoTasks.forEach(task => {
-            if (!task.responsible) {
-                kaizenSuggestions.innerHTML += `<p>A tarefa "${task.title}" está sem responsável. Considere atribuí-la a alguém.</p>`;
-            }
-        });
+        const withoutResponsible = todoTasks.filter(t => !t.responsible);
+        if (withoutResponsible.length > 0) {
+            kaizenSuggestions.innerHTML += `<p>Há ${withoutResponsible.length} tarefa(s) sem responsável. Considere atribuí-las a alguém.</p>`;
+        }
         
         // Sugestão: Cuidado com prazos
         const today = new Date();
-        todoTasks.forEach(task => {
+        today.setHours(0,0,0,0);
+        
+        const overdueTasks = todoTasks.filter(task => {
             if (task.deadline) {
-                const [day, month, year] = task.deadline.split('/').map(Number);
-                const deadlineDate = new Date(year, month - 1, day);
-                if (deadlineDate < today) {
-                    kaizenSuggestions.innerHTML += `<p>A tarefa "${task.title}" está com o prazo vencido! Mova-a para "Fazendo" ou "Feito".</p>`;
+                try {
+                    const [day, month, year] = task.deadline.split('/').map(Number);
+                    const deadlineDate = new Date(year, month - 1, day);
+                    return deadlineDate < today;
+                } catch(e) {
+                    return false;
                 }
             }
+            return false;
         });
 
+        if (overdueTasks.length > 0) {
+            kaizenSuggestions.innerHTML += `<p><strong>Atenção:</strong> ${overdueTasks.length} tarefa(s) estão com o prazo vencido!</p>`;
+        }
+
         // Sugestão: Reunião para revisar gargalos
-        if (doingTasks.length > 2) {
+        if (doingTasks.length > 3 && doingTasks.length > todoTasks.length) {
             kaizenSuggestions.innerHTML += `<p>Há muitos itens em "Fazendo". Isso pode indicar gargalos. Considere uma reunião rápida para realinhar prioridades.</p>`;
         }
 
         // Sugestão: Celebrar conclusões
-        if (doneTasks.length > 0 && Math.random() < 0.3) {
-            kaizenSuggestions.innerHTML += `<p>Ótimo trabalho! Lembre-se de celebrar as pequenas vitórias da equipe. 🎉</p>`;
+        if (doneTasks.length > 0) {
+             kaizenSuggestions.innerHTML += `<p>Ótimo trabalho! Lembre-se de celebrar as pequenas vitórias da equipe. 🎉</p>`;
         }
 
         if (kaizenSuggestions.innerHTML === '') {
@@ -1043,8 +1025,6 @@
         try {
             await window.signOut(window.auth);
             showModal('Sessão Encerrada', 'Você foi desconectado(a) com sucesso. Por favor, recarregue a página para acessar novamente.');
-            // Opcional: Redirecionar para a página de login ou recarregar
-            // setTimeout(() => window.location.reload(), 2000);
         } catch (error) {
             showModal('Erro ao Sair', error.message);
             console.error('Erro ao sair:', error);
@@ -1070,10 +1050,9 @@
             if (user) {
                 authUser = user;
                 const userId = authUser.uid;
-                const companyName = 'Sua Empresa';
                 
                 userInfoSpan.textContent = `Usuário ID: ${userId}`;
-                document.getElementById('board-title').textContent = `Quadro de Operações de ${companyName}`;
+                document.getElementById('board-title').textContent = `Quadro de Operações`;
                 
                 // Define o caminho da coleção com base no usuário autenticado
                 dbCollectionPath = `/artifacts/${appId}/users/${userId}/tasks`;
@@ -1091,872 +1070,6 @@
                 console.log("Nenhum usuário logado. Autenticando anonimamente.");
                 window.authenticate();
             }
-        });
-    });
-
-  </script>
-</body>
-</html>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, addDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    window.setLogLevel = setLogLevel;
-    window.setLogLevel('debug');
-    
-    // Variáveis globais obrigatórias injetadas pelo ambiente Canvas
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    // Inicializar Firebase
-    window.firebaseApp = initializeApp(firebaseConfig);
-    window.auth = getAuth(window.firebaseApp);
-    window.db = getFirestore(window.firebaseApp);
-
-    // Remover a autenticação
-    // O código abaixo foi removido para não exigir autenticação
-    /*
-    async function authenticate() {
-        try {
-            if (initialAuthToken) {
-                await signInWithCustomToken(window.auth, initialAuthToken);
-            } else {
-                await signInAnonymously(window.auth);
-            }
-            console.log("Usuário autenticado no Firebase.");
-        } catch (error) {
-            console.error("Erro na autenticação:", error);
-            window.showModal('Erro de autenticação.', error.message);
-        }
-    }
-    window.authenticate = authenticate;
-    */
-
-    // Exportar funções para o escopo global
-    window.onAuthStateChanged = onAuthStateChanged;
-    window.doc = doc;
-    window.setDoc = setDoc;
-    window.updateDoc = updateDoc;
-    window.deleteDoc = deleteDoc;
-    window.onSnapshot = onSnapshot;
-    window.collection = collection;
-    window.query = query;
-    window.getDoc = getDoc;
-    window.getDocs = getDocs;
-    window.addDoc = addDoc;
-  </script>
-
-  <style>
-    :root{
-      --bg: #0b1020;
-      --bg-soft: #121935;
-      --card: #161e42;
-      --text: #eaf0ff;
-      --muted: #b9c2e0;
-      --brand: #6ee7ff;   /* ciano */
-      --accent: #8b5cf6;  /* roxo */
-      --success: #22c55e;
-      --warn: #f59e0b;
-      --danger: #ef4444;
-      --radius: 14px;
-      --shadow: 0 10px 30px rgba(0,0,0,.25);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      color:var(--text);
-      background: var(--bg);
-      line-height: 1.6;
-      display: flex;
-    }
-    a{color:inherit;text-decoration:none}
-    .container{width:min(1200px, 92%); margin:0 auto}
-    header{
-      position:sticky; top:0; z-index:50;
-      backdrop-filter:saturate(1.2) blur(10px);
-      background: linear-gradient(180deg, rgba(11,16,32,.9), rgba(11,16,32,.6));
-      border-bottom:1px solid rgba(255,255,255,.06);
-      padding:16px 0;
-    }
-    .main-wrapper {
-        display: flex;
-        flex: 1;
-    }
-    aside{
-        width: 240px;
-        background-color: var(--bg-soft);
-        border-right: 1px solid rgba(255,255,255,.06);
-        padding: 20px 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        flex-shrink: 0;
-    }
-    aside .brand {
-        padding: 0 20px 20px;
-        border-bottom: 1px solid rgba(255,255,255,.06);
-        margin-bottom: 20px;
-    }
-    aside .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 20px;
-        color: var(--muted);
-        transition: background-color .2s ease, color .2s ease;
-    }
-    aside .nav-item.active, aside .nav-item:hover {
-        background-color: rgba(255,255,255,.08);
-        color: var(--text);
-    }
-    aside .nav-item svg {
-        width: 20px;
-        height: 20px;
-    }
-    aside .footer-nav {
-        margin-top: auto;
-    }
-    main{
-        flex: 1;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-    }
-    .board-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    .board-header h1 {
-        margin: 0;
-        font-size: clamp(24px, 3vw, 36px);
-    }
-    .brand{display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.5px}
-    .logo{
-      width:34px;height:34px;border-radius:8px;
-      background: conic-gradient(from 90deg, var(--brand), var(--accent));
-      display:grid; place-items:center;
-      box-shadow: 0 6px 18px rgba(110,231,255,.35), inset 0 0 12px rgba(139,92,246,.35);
-      position:relative; overflow:hidden;
-    }
-    .logo::after{
-      content:"+"; font-weight:800; color:#001014; font-size:22px;
-      text-shadow: 0 1px 0 rgba(255,255,255,.35);
-    }
-    .btn{
-      display:inline-flex; align-items:center; gap:10px;
-      padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      color:var(--text); font-weight:600; cursor:pointer;
-      transition: transform .06s ease, box-shadow .2s ease, border-color .2s ease;
-    }
-    .btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.22);}
-    .btn.primary{
-      background: linear-gradient(180deg, rgba(110,231,255,.20), rgba(139,92,246,.15));
-      border-color: rgba(110,231,255,.55);
-      box-shadow: 0 10px 28px rgba(14,165,233,.25);
-    }
-    .btn.small{padding:8px 12px; font-size:14px; border-radius:10px}
-
-    /* Kanban Board */
-    .kanban-board{
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      flex: 1;
-    }
-    .kanban-column{
-      background: var(--bg-soft);
-      border-radius: var(--radius);
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-    }
-    .kanban-column h2{
-      margin: 0 0 15px;
-      font-size: 18px;
-      color: var(--brand);
-      border-bottom: 1px solid rgba(255,255,255,.1);
-      padding-bottom: 10px;
-    }
-    .kanban-tasks{
-      flex: 1;
-      min-height: 100px;
-      background-color: rgba(0,0,0,.05);
-      border-radius: 8px;
-      padding: 10px;
-    }
-    .kanban-task{
-      background: var(--card);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
-      cursor: grab;
-      box-shadow: 0 4px 12px rgba(0,0,0,.15);
-      transition: transform .1s ease, box-shadow .1s ease;
-      position: relative;
-    }
-    .kanban-task:active{
-        cursor: grabbing;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0,0,0,.2);
-    }
-    .kanban-task.dragging {
-      opacity: 0.5;
-      border-style: dashed;
-    }
-    .kanban-task strong{
-      display:block;
-      margin-bottom: 4px;
-    }
-    .kanban-task .meta{
-      font-size: 12px;
-      color: var(--muted);
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-    }
-    .kanban-task .actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 10px;
-    }
-    .kanban-task .actions button {
-        background: none;
-        border: none;
-        color: var(--muted);
-        cursor: pointer;
-        font-size: 14px;
-    }
-    .kanban-task .actions button:hover {
-        color: var(--text);
-    }
-    .kanban-task .actions button.delete:hover {
-        color: var(--danger);
-    }
-
-    .add-task{
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 1px dashed rgba(255,255,255,.08);
-    }
-    .add-task input{
-        width: calc(100% - 70px);
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,.2);
-        background: rgba(255,255,255,.05);
-        color: var(--text);
-        margin-right: 8px;
-    }
-    .add-task button{
-        padding: 10px 14px;
-        border-radius: 8px;
-        border: none;
-        background: var(--brand);
-        color: var(--bg);
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    /* IA Kaizen Section */
-    .kaizen-ia {
-        background: linear-gradient(180deg, rgba(139,92,246,.15), rgba(110,231,255,.10));
-        border: 1px solid rgba(139,92,246,.3);
-        border-radius: var(--radius);
-        padding: 20px;
-        margin-top: 20px;
-        display: flex;
-        gap: 15px;
-        align-items: flex-start;
-        box-shadow: 0 8px 24px rgba(139,92,246,.15);
-    }
-    .kaizen-ia .icon {
-        font-size: 30px;
-        line-height: 1;
-        color: var(--accent);
-    }
-    .kaizen-ia h3 {
-        margin: 0 0 8px;
-        color: var(--brand);
-    }
-    .kaizen-ia p {
-        margin: 0;
-        font-size: 14px;
-        color: var(--muted);
-    }
-    .kaizen-ia .suggestions {
-        margin-top: 15px;
-        border-top: 1px dashed rgba(255,255,255,.1);
-        padding-top: 10px;
-    }
-    .kaizen-ia .suggestions p {
-        margin-bottom: 5px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .kaizen-ia .suggestions p::before {
-        content: "💡";
-        font-size: 16px;
-    }
-
-    .settings-menu {
-        position: absolute;
-        top: 30px;
-        right: 0;
-        background-color: var(--card);
-        border: 1px solid rgba(255,255,255,.1);
-        border-radius: 8px;
-        padding: 8px 0;
-        box-shadow: var(--shadow);
-        z-index: 10;
-        min-width: 150px;
-    }
-    .settings-menu button {
-        display: block;
-        width: 100%;
-        padding: 8px 15px;
-        text-align: left;
-        background: none;
-        border: none;
-        color: var(--text);
-        cursor: pointer;
-    }
-    .settings-menu button:hover {
-        background-color: rgba(255,255,255,.08);
-    }
-
-    .message-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-
-    .modal-content {
-        background-color: var(--bg-soft);
-        border: 1px solid var(--card);
-        border-radius: var(--radius);
-        padding: 30px;
-        max-width: 400px;
-        text-align: center;
-    }
-
-    .modal-content h3 {
-        margin-top: 0;
-        font-size: 20px;
-    }
-
-    .modal-content p {
-        margin-bottom: 20px;
-        color: var(--muted);
-    }
-
-    .modal-actions {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-    }
-
-    .modal-actions button {
-        padding: 10px 20px;
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,.2);
-        background: var(--card);
-        color: var(--text);
-        cursor: pointer;
-    }
-
-    /* Responsive */
-    @media (max-width: 900px){
-      body {flex-direction: column;}
-      aside {width: 100%; padding: 10px 0; border-right: none; border-bottom: 1px solid rgba(255,255,255,.06); flex-direction: row; justify-content: start; overflow-x: auto;}
-      aside .brand {display: none;} /* Hide brand on small screens */
-      aside .nav-item {padding: 8px 15px; flex-shrink: 0;}
-      aside .footer-nav {margin-top: 0;}
-      main {padding: 15px;}
-      .kanban-board {grid-template-columns: 1fr; gap: 15px;}
-      .board-header {flex-direction: column; align-items: flex-start; gap: 10px;}
-      .kaizen-ia {flex-direction: column;}
-    }
-  </style>
-</head>
-<body>
-  <aside>
-    <div class="brand">
-      <span class="logo" aria-hidden="true"></span>
-      <span>integra+</span>
-    </div>
-    <nav>
-      <a href="#" class="nav-item active">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25v9m-12.75-9h11.25V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v4.5M3 12h14.25v9m-12.75-9h11.25V12.75A2.25 2.25 0 0 0 13.5 10.5h-6A2.25 2.25 0 0 0 5.25 12.75v4.5m4.5-4.5H5.25c-.621 0-1.125.504-1.125 1.125v4.5c0 .621.504 1.125 1.125 1.125h4.5c.621 0 1.125-.504 1.125-1.125v-4.5c0-.621-.504-1.125-1.125-1.125ZM3 19.5h14.25v9m-12.75-9h11.25V19.5A2.25 2.25 0 0 0 13.5 17.25h-6A2.25 2.25 0 0 0 5.25 19.5v4.5M3 27h14.25v9m-12.75-9h11.25V27.75A2.25 2.25 0 0 0 13.5 25.5h-6A2.25 2.25 0 0 0 5.25 27.75v4.5m4.5-4.5H5.25c-.621 0-1.125.504-1.125 1.125v4.5c0 .621.504 1.125 1.125 1.125h4.5c.621 0 1.125-.504 1.125-1.125v-4.5c0-.621-.504-1.125-1.125-1.125Z" />
-        </svg>
-        <span>Meus Quadros</span>
-      </a>
-      <a href="#" class="nav-item">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
-        </svg>
-        <span>Relatórios</span>
-      </a>
-      <a href="#" class="nav-item">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.125A7.5 7.5 0 0 1 12 21.75c-2.41 0-4.706-.568-6.733-1.936m9.546-3.04A9 9 0 0 0 12 18.75c-2.305 0-4.47-.612-6.337-1.76M9 4.5L12 3m-10 16.5h16.5v-.525m-6-.81L12 18m-8.72-6H.75m19.5 0h.75m-4.5 9V.75m7.5 11.25H21M4.5 2.25H9m0 0H2.25v2.25M9 2.25v2.25m8.25-2.25H21m0 0h-6.75V4.5m6.75-2.25v2.25M12 2.25v18" />
-        </svg>
-        <span>Geral da Empresa</span>
-      </a>
-    </nav>
-    <div class="footer-nav">
-        <a href="#" class="nav-item">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.502c.55 0 1.02.398 1.11.94l.213 1.281c.061.365.331.644.68.784a1.864 1.864 0 0 0 1.606.275c.34-.142.6-.367.766-.622l1.28-1.281c.539-.539 1.399-.54 1.938 0 1.157 1.159 1.157 3.043 0 4.199l-1.281 1.28c-.255.166-.48.426-.622.766a1.864 1.864 0 0 0 .275 1.606c.14.349.42.619.785.68l1.28.213c.542.09.94.56 1.11.94" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            </svg>
-            <span>Configurações</span>
-        </a>
-        <a href="#" class="nav-item">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 6.75 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
-            </svg>
-            <span>Sair</span>
-        </a>
-    </div>
-  </aside>
-
-  <div class="main-wrapper">
-    <main>
-        <div class="board-header">
-            <div>
-              <p style="margin:0; font-size:14px; color:var(--muted)">Bem-vindo(a), <span id="user-info">Quadro Público</span></p>
-              <h1 id="board-title">Quadro de Operações</h1>
-            </div>
-            <button class="btn primary small" id="add-task-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:16px; height:16px;">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Nova Tarefa
-            </button>
-        </div>
-
-        <div class="kanban-board" id="kanban-board">
-            <div class="kanban-column" id="column-todo">
-                <h2>A Fazer</h2>
-                <div class="kanban-tasks" data-status="todo"></div>
-                <div class="add-task">
-                    <input type="text" placeholder="Adicionar nova tarefa..." id="new-task-todo">
-                    <button onclick="addTask('todo')">+</button>
-                </div>
-            </div>
-
-            <div class="kanban-column" id="column-doing">
-                <h2>Fazendo</h2>
-                <div class="kanban-tasks" data-status="doing"></div>
-                <div class="add-task">
-                    <input type="text" placeholder="Adicionar nova tarefa..." id="new-task-doing">
-                    <button onclick="addTask('doing')">+</button>
-                </div>
-            </div>
-
-            <div class="kanban-column" id="column-done">
-                <h2>Feito</h2>
-                <div class="kanban-tasks" data-status="done"></div>
-                <div class="add-task">
-                    <input type="text" placeholder="Adicionar nova tarefa..." id="new-task-done">
-                    <button onclick="addTask('done')">+</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="kaizen-ia">
-            <div class="icon">🤖</div>
-            <div>
-                <h3>IA Kaizen recomendações:</h3>
-                <p>O integra+ está sempre buscando oportunidades de melhoria contínua para sua equipe.</p>
-                <div class="suggestions" id="kaizen-suggestions">
-                    <p>Carregando recomendações...</p>
-                </div>
-                <button class="btn small primary" onclick="speakKaizenSuggestions()">Ouvir recomendações</button>
-            </div>
-        </div>
-    </main>
-  </div>
-
-  <div id="message-modal" class="message-modal" hidden>
-      <div class="modal-content">
-          <h3 id="modal-title"></h3>
-          <p id="modal-message"></p>
-          <div class="modal-actions" id="modal-actions">
-              <button id="modal-confirm-btn">Confirmar</button>
-              <button id="modal-cancel-btn">Cancelar</button>
-          </div>
-      </div>
-  </div>
-
-  <script type="module">
-    // Referências do DOM
-    const kanbanBoard = document.getElementById('kanban-board');
-    const messageModal = document.getElementById('message-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalMessage = document.getElementById('modal-message');
-    const modalConfirmBtn = document.getElementById('modal-confirm-btn');
-    const modalCancelBtn = document.getElementById('modal-cancel-btn');
-    const kaizenSuggestions = document.getElementById('kaizen-suggestions');
-    const userInfoSpan = document.getElementById('user-info');
-    
-    // Variáveis de estado
-    let draggedItem = null;
-    let authUser = null; // authUser não será mais usado, mas a variável é mantida
-    // Define um caminho de coleção estático, não dependente de autenticação
-    const dbCollectionPath = 'public_tasks'; 
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-    // ####################### Funções de UI e Acessibilidade #######################
-
-    // Função para mostrar um modal de mensagem ou confirmação
-    window.showModal = function(title, message, isConfirm = false) {
-        return new Promise(resolve => {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            messageModal.style.display = 'flex';
-            modalConfirmBtn.textContent = 'OK';
-            modalCancelBtn.style.display = 'none';
-
-            if (isConfirm) {
-                modalConfirmBtn.textContent = 'Confirmar';
-                modalCancelBtn.style.display = 'inline-block';
-            }
-
-            modalConfirmBtn.onclick = () => {
-                messageModal.style.display = 'none';
-                resolve(true);
-            };
-            modalCancelBtn.onclick = () => {
-                messageModal.style.display = 'none';
-                resolve(false);
-            };
-        });
-    }
-    
-    // Simulação da funcionalidade de voz
-    const supportsSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-    window.speak = function(text, rate=1){
-      if(!supportsSpeech || !text) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'pt-BR';
-      const pickVoice = () => {
-        const voices = speechSynthesis.getVoices();
-        const br = voices.find(v => v.lang.toLowerCase().startsWith('pt-br'));
-        if(br) u.voice = br;
-        speechSynthesis.speak(u);
-      };
-      if(speechSynthesis.getVoices().length) pickVoice();
-      else speechSynthesis.onvoiceschanged = pickVoice;
-    }
-
-    window.speakKaizenSuggestions = function(){
-        let textToSpeak = 'Recomendações da IA Kaizen. ';
-        kaizenSuggestions.querySelectorAll('p').forEach(p => {
-            textToSpeak += p.textContent + '. ';
-        });
-        speak(textToSpeak);
-    }
-    
-    // ####################### Funções de Manipulação do DOM #######################
-    
-    function renderTasks(tasks) {
-        const columns = {
-            todo: document.querySelector('.kanban-tasks[data-status="todo"]'),
-            doing: document.querySelector('.kanban-tasks[data-status="doing"]'),
-            done: document.querySelector('.kanban-tasks[data-status="done"]')
-        };
-
-        // Limpa todas as colunas
-        Object.values(columns).forEach(col => col.innerHTML = '');
-
-        // Preenche as colunas com as tarefas do banco
-        tasks.forEach(task => {
-            const newTask = document.createElement('div');
-            newTask.classList.add('kanban-task');
-            newTask.setAttribute('draggable', 'true');
-            newTask.setAttribute('data-id', task.id);
-            newTask.setAttribute('data-status', task.status);
-            
-            newTask.innerHTML = `
-                <strong>${task.title}</strong>
-                <div class="meta">
-                    <span>Responsável: ${task.responsible || 'A definir'}</span>
-                    <span>Prazo: ${task.deadline || 'A definir'}</span>
-                </div>
-                <div class="actions">
-                    <button onclick="editTask(this)">✏️</button>
-                    <button class="delete" onclick="deleteTask(this)">🗑️</button>
-                    <button onclick="openSettings(this)">⚙️</button>
-                    <div class="settings-menu" hidden>
-                        <button onclick="assignTask(this)">Atribuir</button>
-                        <button onclick="setDeadline(this)">Definir Prazo</button>
-                    </div>
-                </div>
-            `;
-            if (columns[task.status]) {
-                 columns[task.status].appendChild(newTask);
-            }
-        });
-
-        updateKaizenSuggestions(tasks);
-    }
-    
-    // ####################### Funções de Interação com Firestore #######################
-    
-    window.addTask = async function(status) {
-        // A checagem de autenticação foi removida
-        const input = document.getElementById(`new-task-${status}`);
-        const taskText = input.value.trim();
-        if (!taskText) {
-            return;
-        }
-        
-        const newTask = {
-            title: taskText,
-            responsible: null,
-            deadline: null,
-            status: status,
-            createdAt: new Date()
-        };
-        
-        try {
-            await window.addDoc(window.collection(window.db, dbCollectionPath), newTask);
-            input.value = '';
-        } catch (error) {
-            showModal('Erro ao adicionar tarefa', error.message);
-            console.error('Erro ao adicionar tarefa:', error);
-        }
-    }
-
-    window.updateTask = async function(taskId, newData) {
-        // A checagem de autenticação foi removida
-        try {
-            const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
-            await window.updateDoc(taskDocRef, newData);
-        } catch (error) {
-            showModal('Erro ao atualizar tarefa', error.message);
-            console.error('Erro ao atualizar tarefa:', error);
-        }
-    }
-
-    window.deleteTask = async function(button) {
-        const taskId = button.closest('.kanban-task').getAttribute('data-id');
-        const confirmDelete = await showModal('Confirmação', 'Tem certeza que deseja excluir esta tarefa?', true);
-        if (confirmDelete) {
-            // A checagem de autenticação foi removida
-            try {
-                const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
-                await window.deleteDoc(taskDocRef);
-            } catch (error) {
-                showModal('Erro ao deletar tarefa', error.message);
-                console.error('Erro ao deletar tarefa:', error);
-            }
-        }
-    }
-
-    window.editTask = async function(button) {
-        const taskElement = button.closest('.kanban-task');
-        const taskId = taskElement.getAttribute('data-id');
-        const currentTitle = taskElement.querySelector('strong').textContent;
-        const newTitle = prompt('Editar tarefa:', currentTitle);
-        if (newTitle && newTitle.trim() !== '' && newTitle !== currentTitle) {
-            await updateTask(taskId, { title: newTitle.trim() });
-        }
-    }
-
-    window.assignTask = async function(button) {
-        const taskElement = button.closest('.kanban-task');
-        const taskId = taskElement.getAttribute('data-id');
-        const currentResponsible = taskElement.querySelector('.meta span:nth-child(1)').textContent.replace('Responsável: ', '');
-        const newResponsible = prompt('Atribuir a quem?', currentResponsible);
-        if (newResponsible && newResponsible.trim() !== '' && newResponsible !== currentResponsible) {
-            await updateTask(taskId, { responsible: newResponsible.trim() });
-        }
-        button.closest('.settings-menu').hidden = true;
-    }
-
-    window.setDeadline = async function(button) {
-        const taskElement = button.closest('.kanban-task');
-        const taskId = taskElement.getAttribute('data-id');
-        const currentDeadline = taskElement.querySelector('.meta span:nth-child(2)').textContent.replace('Prazo: ', '');
-        const newDeadline = prompt('Definir prazo (DD/MM/AAAA):', currentDeadline);
-        if (newDeadline && newDeadline.trim() !== '' && newDeadline !== currentDeadline) {
-            await updateTask(taskId, { deadline: newDeadline.trim() });
-        }
-        button.closest('.settings-menu').hidden = true;
-    }
-
-    window.openSettings = function(button) {
-        const menu = button.nextElementSibling;
-        const allMenus = document.querySelectorAll('.settings-menu');
-        allMenus.forEach(m => {
-            if (m !== menu) {
-                m.hidden = true;
-            }
-        });
-        menu.hidden = !menu.hidden;
-    }
-
-    // ####################### Lógica do Drag and Drop #######################
-
-    kanbanBoard.addEventListener('dragstart', (e) => {
-        if (e.target.classList.contains('kanban-task')) {
-            draggedItem = e.target;
-            setTimeout(() => {
-                e.target.classList.add('dragging');
-            }, 0);
-        }
-    });
-
-    kanbanBoard.addEventListener('dragend', (e) => {
-        if (draggedItem) {
-            draggedItem.classList.remove('dragging');
-            draggedItem = null;
-        }
-    });
-
-    kanbanBoard.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const target = e.target.closest('.kanban-tasks');
-        if (target && draggedItem) {
-            const afterElement = getDragAfterElement(target, e.clientY);
-            if (afterElement == null) {
-                target.appendChild(draggedItem);
-            } else {
-                target.insertBefore(draggedItem, afterElement);
-            }
-        }
-    });
-
-    kanbanBoard.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        const targetColumn = e.target.closest('.kanban-tasks');
-        if (targetColumn && draggedItem) {
-            const newStatus = targetColumn.getAttribute('data-status');
-            const taskId = draggedItem.getAttribute('data-id');
-            const currentStatus = draggedItem.getAttribute('data-status');
-
-            if (newStatus !== currentStatus) {
-                const updateData = { status: newStatus };
-                if (newStatus === 'done') {
-                    updateData.deadline = `Concluído: ${new Date().toLocaleDateString('pt-BR')}`;
-                } else if (currentStatus === 'done') {
-                    // Restaurar o campo de prazo se sair de "Feito"
-                    const currentDeadline = draggedItem.querySelector('.meta span:nth-child(2)').textContent.replace('Concluído: ', '');
-                    updateData.deadline = currentDeadline;
-                }
-                await updateTask(taskId, updateData);
-            }
-        }
-    });
-
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.kanban-task:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    // ####################### Lógica da IA Kaizen #######################
-
-    function updateKaizenSuggestions(tasks) {
-        kaizenSuggestions.innerHTML = ''; 
-
-        const tasksByStatus = tasks.reduce((acc, task) => {
-            acc[task.status] = acc[task.status] || [];
-            acc[task.status].push(task);
-            return acc;
-        }, {});
-        
-        const todoTasks = tasksByStatus.todo || [];
-        const doingTasks = tasksByStatus.doing || [];
-        const doneTasks = tasksByStatus.done || [];
-
-        // Sugestão: Checklist para tarefas sem responsável
-        todoTasks.forEach(task => {
-            if (!task.responsible) {
-                kaizenSuggestions.innerHTML += `<p>Alerta: A tarefa "${task.title}" está sem responsável definido.</p>`;
-            }
-        });
-
-        // Sugestão: Criar checklist padrão
-        if (todoTasks.length > 3) {
-             kaizenSuggestions.innerHTML += `<p>Sugestão Kaizen: Há muitas tarefas no "A Fazer". Considere criar checklists para padronizar os primeiros passos de tarefas recorrentes.</p>`;
-        }
-
-        // Sugestão: Reunião para revisar gargalos
-        if (doingTasks.length > 2) {
-            kaizenSuggestions.innerHTML += `<p>Alerta: Há muitos itens em "Fazendo". Isso pode indicar gargalos. Considere uma reunião rápida para realinhar prioridades.</p>`;
-        }
-
-        // Sugestão: Celebrar conclusões
-        if (doneTasks.length > 0 && Math.random() < 0.3) {
-            kaizenSuggestions.innerHTML += `<p>Ótimo trabalho! Lembre-se de celebrar as pequenas vitórias da equipe. 🎉</p>`;
-        }
-
-        if (kaizenSuggestions.innerHTML === '') {
-            kaizenSuggestions.innerHTML = '<p>Nenhuma sugestão Kaizen no momento. Continue o bom trabalho!</p>';
-        }
-    }
-
-    // ####################### Inicialização #######################
-
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('add-task-btn').addEventListener('click', () => {
-            const taskInput = document.getElementById('new-task-todo');
-            const taskText = taskInput.value.trim();
-            if (taskText) {
-                addTask('todo');
-            } else {
-                showModal('Nova Tarefa', 'Digite um nome para a tarefa.');
-            }
-        });
-        
-        // Esconder menu de configurações ao clicar fora
-        window.addEventListener('click', (e) => {
-            if (!e.target.closest('.settings-menu') && !e.target.closest('.kanban-task .actions button')) {
-                document.querySelectorAll('.settings-menu').forEach(menu => menu.hidden = true);
-            }
-        });
-
-        // Configura a interface para o modo público
-        userInfoSpan.textContent = 'Quadro Público';
-        document.getElementById('board-title').textContent = 'Quadro de Operações Público';
-
-        // Real-time listener para a coleção de tarefas
-        window.onSnapshot(window.collection(window.db, dbCollectionPath), (querySnapshot) => {
-            const tasks = [];
-            querySnapshot.forEach((doc) => {
-                tasks.push({ id: doc.id, ...doc.data() });
-            });
-            renderTasks(tasks);
         });
     });
 
