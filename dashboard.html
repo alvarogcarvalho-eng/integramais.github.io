@@ -9,21 +9,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     
     // Variáveis globais obrigatórias injetadas pelo ambiente Canvas
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
     // ####################### Inicialização do Firebase #######################
-    window.setLogLevel = setLogLevel;
-    window.setLogLevel('debug');
+    setLogLevel('debug');
     
     window.firebaseApp = initializeApp(firebaseConfig);
     window.auth = getAuth(window.firebaseApp);
@@ -44,7 +41,7 @@
     }
     window.authenticate = authenticate;
 
-    // Exportar funções para o escopo global
+    // Exportar funções para o escopo global para serem usadas nos handlers onclick=""
     window.onAuthStateChanged = onAuthStateChanged;
     window.signOut = signOut;
     window.doc = doc;
@@ -64,8 +61,8 @@
       --card: #161e42;
       --text: #eaf0ff;
       --muted: #b9c2e0;
-      --brand: #6ee7ff;   /* ciano */
-      --accent: #8b5cf6;  /* roxo */
+      --brand: #6ee7ff;  /* ciano */
+      --accent: #8b5cf6; /* roxo */
       --success: #22c55e;
       --warn: #f59e0b;
       --danger: #ef4444;
@@ -94,6 +91,7 @@
     .main-wrapper {
         display: flex;
         flex: 1;
+        overflow: hidden;
     }
     aside{
         width: 240px;
@@ -134,6 +132,7 @@
         padding: 20px;
         display: flex;
         flex-direction: column;
+        overflow-y: auto;
     }
     .board-header {
         display: flex;
@@ -246,6 +245,7 @@
         color: var(--muted);
         cursor: pointer;
         font-size: 14px;
+        padding: 2px;
     }
     .kanban-task .actions button:hover {
         color: var(--text);
@@ -276,6 +276,7 @@
         color: var(--bg);
         font-weight: 600;
         cursor: pointer;
+        width: 100%;
     }
     .add-task-btn-container {
       display: flex;
@@ -345,6 +346,7 @@
         border: none;
         color: var(--text);
         cursor: pointer;
+        font-size: 14px;
     }
     .settings-menu button:hover {
         background-color: rgba(255,255,255,.08);
@@ -370,6 +372,7 @@
         padding: 30px;
         max-width: 400px;
         text-align: center;
+        width: 90%;
     }
 
     .modal-content h3 {
@@ -420,8 +423,9 @@
       body {flex-direction: column;}
       aside {width: 100%; padding: 10px 0; border-right: none; border-bottom: 1px solid rgba(255,255,255,.06); flex-direction: row; justify-content: start; overflow-x: auto;}
       aside .brand {display: none;} /* Oculta a marca em telas pequenas */
+      aside nav { display: flex; }
       aside .nav-item {padding: 8px 15px; flex-shrink: 0;}
-      aside .footer-nav {margin-top: 0;}
+      aside .footer-nav {margin-top: 0; display: flex; margin-left: auto;}
       main {padding: 15px;}
       .kanban-board {grid-template-columns: 1fr; gap: 15px;}
       .board-header {flex-direction: column; align-items: flex-start; gap: 10px;}
@@ -438,7 +442,7 @@
     <nav>
       <a href="#" class="nav-item active" data-view="kanban">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25v9m-12.75-9h11.25V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v4.5M3 12h14.25v9m-12.75-9h11.25V12.75A2.25 2.25 0 0 0 13.5 10.5h-6A2.25 2.25 0 0 0 5.25 12.75v4.5m4.5-4.5H5.25c-.621 0-1.125.504-1.125 1.125v4.5c0 .621.504 1.125 1.125 1.125h4.5c.621 0 1.125-.504 1.125-1.125v-4.5c0-.621-.504-1.125-1.125-1.125ZM3 19.5h14.25v9m-12.75-9h11.25V19.5A2.25 2.25 0 0 0 13.5 17.25h-6A2.25 2.25 0 0 0 5.25 19.5v4.5M3 27h14.25v9m-12.75-9h11.25V27.75A2.25 2.25 0 0 0 13.5 25.5h-6A2.25 2.25 0 0 0 5.25 27.75v4.5m4.5-4.5H5.25c-.621 0-1.125.504-1.125 1.125v4.5c0 .621.504 1.125 1.125 1.125h4.5c.621 0 1.125-.504 1.125-1.125v-4.5c0-.621-.504-1.125-1.125-1.125Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.5-15h15a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-15A2.25 2.25 0 0 1 2.25 17.25V6.75A2.25 2.25 0 0 1 4.5 4.5z" />
         </svg>
         <span>Meus Quadros</span>
       </a>
@@ -451,7 +455,7 @@
       </a>
       <a href="#" class="nav-item" data-view="company">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.125A7.5 7.5 0 0 1 12 21.75c-2.41 0-4.706-.568-6.733-1.936m9.546-3.04A9 9 0 0 0 12 18.75c-2.305 0-4.47-.612-6.337-1.76M9 4.5L12 3m-10 16.5h16.5v-.525m-6-.81L12 18m-8.72-6H.75m19.5 0h.75m-4.5 9V.75m7.5 11.25H21M4.5 2.25H9m0 0H2.25v2.25M9 2.25v2.25m8.25-2.25H21m0 0h-6.75V4.5m6.75-2.25v2.25M12 2.25v18" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.125A7.5 7.5 0 0 1 12 21.75c-2.41 0-4.706-.568-6.733-1.936m9.546-3.04A9 9 0 0 0 12 18.75c-2.305 0-4.47-.612-6.337-1.76M9 4.5L12 3m0 0l3 1.5M12 3v13.5m0-13.5L9 1.5M12 3L6.063 6.063M12 3l5.937 3.063m0 0L21 9m-9-6l-5.937 3.063M15 4.5v13.5m0 0l3 1.5m-3-1.5l-3-1.5m3 1.5l3-1.5M9 4.5v13.5m0 0l3 1.5m-3-1.5L6 18m3-1.5l-3-1.5m0 0l-5.937-3.063m11.874 0L21 9m-9-6h.008v.008H12V3Z" />
         </svg>
         <span>Geral da Empresa</span>
       </a>
@@ -459,7 +463,7 @@
     <div class="footer-nav">
         <a href="#" class="nav-item" data-view="settings">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.502c.55 0 1.02.398 1.11.94l.213 1.281c.061.365.331.644.68.784a1.864 1.864 0 0 0 1.606.275c.34-.142.6-.367.766-.622l1.28-1.281c.539-.539 1.399-.54 1.938 0 1.157 1.159 1.157 3.043 0 4.199l-1.281 1.28c-.255.166-.48.426-.622.766a1.864 1.864 0 0 0 .275 1.606c.14.349.42.619.785.68l1.28.213c.542.09.94.56 1.11.94" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.502c.55 0 1.02.398 1.11.94l.213 1.281c.061.365.331.644.68.784a1.864 1.864 0 0 0 1.606.275c.34-.142.6-.367.766-.622l1.28-1.281c.539-.539 1.399-.54 1.938 0 1.157 1.159 1.157 3.043 0 4.199l-1.281 1.28c-.255.166-.48.426-.622.766a1.864 1.864 0 0 0 .275 1.606c.14.349.42.619.785.68l1.28.213c.542.09.94.56.94 1.11v2.502c0 .55-.398 1.02-.94 1.11l-1.28.213c-.365.061-.644.331-.785.68a1.864 1.864 0 0 0-.275 1.606c.142.34.367.6.622.766l1.281 1.28c.539.539.54 1.399 0 1.938-1.159 1.157-3.043 1.157-4.199 0l-1.28-1.281c-.166-.255-.426-.48-.766-.622a1.864 1.864 0 0 0-1.606-.275c-.349.14-.619.42-.68.785l-.213 1.28c-.09.542-.56.94-1.11.94h-2.502c-.55 0-1.02-.398-1.11-.94l-.213-1.28c-.061-.365-.331-.644-.68-.785a1.864 1.864 0 0 0-1.606-.275c-.34.142-.6.367-.766.622l-1.28 1.281c-.539.539-1.399.54-1.938 0-1.157-1.159-1.157-3.043 0-4.199l1.281-1.28c.255-.166.48-.426.622-.766a1.864 1.864 0 0 0-.275-1.606c-.14-.349-.42-.619-.785-.68l-1.28-.213c-.542-.09-.94-.56-.94-1.11v-2.502c0-.55.398-1.02.94-1.11l1.28-.213c.365-.061.644-.331.785-.68a1.864 1.864 0 0 0 .275-1.606c-.142-.34-.367-.6-.622-.766l-1.281-1.28c-.539-.539-.54-1.399 0-1.938 1.159-1.157 3.043-1.157 4.199 0l1.28 1.281c.166.255.426.48.766.622a1.864 1.864 0 0 0 1.606.275c.349-.14.619-.42.68-.785l.213-1.28Z" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
             </svg>
             <span>Configurações</span>
@@ -475,11 +479,10 @@
 
   <div class="main-wrapper" id="main-wrapper">
     <main id="main-content">
-        <!-- Visualização do Kanban -->
         <div id="kanban-view">
             <div class="board-header">
                 <div>
-                  <p style="margin:0; font-size:14px; color:var(--muted)">Bem-vindo(a), <span id="user-info">Quadro Público</span></p>
+                  <p style="margin:0; font-size:14px; color:var(--muted)">Bem-vindo(a), <span id="user-info">Carregando...</span></p>
                   <h1 id="board-title">Quadro de Operações</h1>
                 </div>
                 <button class="btn primary small" id="add-task-btn">
@@ -544,7 +547,6 @@
             </div>
         </div>
         
-        <!-- Visualização de Relatórios (Inicialmente oculta) -->
         <div id="reports-view" class="other-views" style="display: none;">
             <h2>Relatórios de Produtividade</h2>
             <p style="color: var(--muted);">Aqui você pode visualizar gráficos e estatísticas sobre o progresso das tarefas da sua equipe.</p>
@@ -556,7 +558,6 @@
             </ul>
         </div>
 
-        <!-- Visualização Geral da Empresa (Inicialmente oculta) -->
         <div id="company-view" class="other-views" style="display: none;">
             <h2>Visão Geral da Empresa</h2>
             <p style="color: var(--muted);">Acompanhe o desempenho e a estrutura de sua equipe.</p>
@@ -568,7 +569,6 @@
             </ul>
         </div>
         
-        <!-- Visualização de Configurações (Inicialmente oculta) -->
         <div id="settings-view" class="other-views" style="display: none;">
             <h2>Configurações do Sistema</h2>
             <p style="color: var(--muted);">Gerencie as preferências e o seu perfil.</p>
@@ -582,8 +582,8 @@
     </main>
   </div>
 
-  <div id="message-modal" class="message-modal" hidden>
-      <div class="modal-content">
+  <div id="message-modal" class="message-modal">
+      <div class="modal-content" id="modal-content">
           <h3 id="modal-title"></h3>
           <p id="modal-message"></p>
           <div class="modal-actions" id="modal-actions">
@@ -596,14 +596,13 @@
   <script type="module">
     // ####################### Variáveis e Referências do DOM #######################
     const kanbanView = document.getElementById('kanban-view');
-    const reportsView = document.getElementById('reports-view');
-    const companyView = document.getElementById('company-view');
-    const settingsView = document.getElementById('settings-view');
     const navItems = document.querySelectorAll('.nav-item');
     const kanbanBoard = document.getElementById('kanban-board');
     const messageModal = document.getElementById('message-modal');
+    const modalContent = document.getElementById('modal-content');
     const modalTitle = document.getElementById('modal-title');
     const modalMessage = document.getElementById('modal-message');
+    const modalActions = document.getElementById('modal-actions');
     const modalConfirmBtn = document.getElementById('modal-confirm-btn');
     const modalCancelBtn = document.getElementById('modal-cancel-btn');
     const kaizenSuggestions = document.getElementById('kaizen-suggestions');
@@ -611,7 +610,8 @@
     
     let draggedItem = null;
     let authUser = null;
-    let dbCollectionPath = '';
+    let tasksCollectionRef = null; 
+    let unsubscribeFromTasks = null;
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
     // ####################### Funções de UI e Acessibilidade #######################
@@ -626,6 +626,10 @@
         const viewToShow = document.getElementById(`${viewName}-view`);
         if (viewToShow) {
             viewToShow.style.display = 'block';
+            if (viewName === 'kanban') {
+              kanbanView.style.display = 'block';
+              viewToShow.style.display = 'contents';
+            }
         }
         
         const navItem = document.querySelector(`[data-view="${viewName}"]`);
@@ -633,19 +637,6 @@
             navItem.classList.add('active');
         }
     }
-
-    // Adiciona event listeners aos botões de navegação
-    navItems.forEach(item => {
-        const view = item.dataset.view;
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (view === 'signout') {
-                signOutUser();
-            } else {
-                renderView(view);
-            }
-        });
-    });
 
     // Função para mostrar um modal de mensagem ou confirmação
     window.showModal = function(title, message, isConfirm = false) {
@@ -677,6 +668,10 @@
         return new Promise(resolve => {
             modalTitle.textContent = title;
             modalMessage.textContent = ''; // Limpa a mensagem padrão
+            
+            const existingInput = modalContent.querySelector('input');
+            if(existingInput) existingInput.remove();
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.placeholder = message;
@@ -687,22 +682,30 @@
             modalCancelBtn.style.display = 'inline-block';
             messageModal.style.display = 'flex';
             
-            modalConfirmBtn.onclick = () => {
+            const onConfirm = () => {
                 messageModal.style.display = 'none';
                 input.remove();
                 resolve(input.value);
             };
-            modalCancelBtn.onclick = () => {
-                messageModal.style.display = 'none';
+            
+            const onCancel = () => {
+                 messageModal.style.display = 'none';
                 input.remove();
                 resolve(null);
             };
+
+            modalConfirmBtn.onclick = onConfirm;
+            modalCancelBtn.onclick = onCancel;
             
             input.focus();
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') onConfirm();
+                if (e.key === 'Escape') onCancel();
+            });
         });
     };
 
-    // Simulação da funcionalidade de voz
+    // Funcionalidade de voz
     const supportsSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
     window.speak = function(text, rate=1){
       if(!supportsSpeech || !text) return;
@@ -720,7 +723,7 @@
     }
 
     window.speakKaizenSuggestions = function(){
-        let textToSpeak = 'Recomendações da IA Kaizen. ';
+        let textToSpeak = 'Recomendações da Inteligência Artificial Kaizen. ';
         kaizenSuggestions.querySelectorAll('p').forEach(p => {
             textToSpeak += p.textContent + '. ';
         });
@@ -748,7 +751,7 @@
             newTask.setAttribute('data-status', task.status);
 
             const deadlineText = task.deadline ? `Prazo: ${task.deadline}` : 'Prazo: A definir';
-            const responsibleText = task.responsible ? `Responsável: ${task.responsible}` : 'Responsável: A definir';
+            const responsibleText = task.responsible ? `Responsável: ${task.responsible}` : 'A definir';
             
             newTask.innerHTML = `
                 <strong>${task.title}</strong>
@@ -757,11 +760,11 @@
                     <span>${deadlineText}</span>
                 </div>
                 <div class="actions">
-                    <button onclick="editTaskTitle(this)">✏️</button>
-                    <button class="delete" onclick="deleteTask(this)">🗑️</button>
-                    <button onclick="openSettings(this)">⚙️</button>
+                    <button onclick="editTaskTitle(this)" title="Editar Título">✏️</button>
+                    <button class="delete" onclick="deleteTask(this)" title="Excluir Tarefa">🗑️</button>
+                    <button onclick="openSettings(this)" title="Mais Opções">⚙️</button>
                     <div class="settings-menu" hidden>
-                        <button onclick="editTaskResponsible(this)">Atribuir</button>
+                        <button onclick="editTaskResponsible(this)">Atribuir Responsável</button>
                         <button onclick="editTaskDeadline(this)">Definir Prazo</button>
                     </div>
                 </div>
@@ -770,17 +773,49 @@
                  columns[task.status].appendChild(newTask);
             }
         });
-
         updateKaizenSuggestions(tasks);
+    }
+
+    function updateKaizenSuggestions(tasks) {
+        let suggestions = [];
+        const doingTasks = tasks.filter(t => t.status === 'doing');
+        const todoTasks = tasks.filter(t => t.status === 'todo');
+        const doneTasks = tasks.filter(t => t.status === 'done');
+
+        if (doingTasks.length > 5) {
+            suggestions.push("Há muitas tarefas em andamento. Considere focar em finalizar algumas antes de começar novas para evitar gargalos.");
+        }
+        if (todoTasks.length > 10 && doneTasks.length < 2) {
+            suggestions.push("O backlog está crescendo. Que tal priorizar as tarefas mais importantes ou dividir tarefas grandes em menores?");
+        }
+        const overdueTasks = tasks.filter(t => {
+            if (!t.deadline || t.status === 'done') return false;
+            try {
+                const parts = t.deadline.split('/');
+                if (parts.length !== 3) return false;
+                const [day, month, year] = parts;
+                const deadlineDate = new Date(`${year}-${month}-${day}T23:59:59`);
+                return deadlineDate < new Date();
+            } catch(e) { return false; }
+        });
+        if(overdueTasks.length > 0) {
+            suggestions.push(`Atenção! Existem ${overdueTasks.length} tarefa(s) com o prazo vencido. Revise os prazos ou priorize-as.`);
+        }
+        if (suggestions.length === 0) {
+            suggestions.push("Tudo parece em ordem. Continue com o bom trabalho e mantenha o quadro atualizado!");
+        }
+
+        kaizenSuggestions.innerHTML = suggestions.map(s => `<p>${s}</p>`).join('');
     }
     
     // ####################### Funções de Interação com Firestore #######################
     
     window.addTask = async function(status) {
-        if (!authUser) {
+        if (!tasksCollectionRef) {
             showModal('Erro', 'Você precisa estar logado para adicionar tarefas.');
             return;
         }
+        
         const titleInput = document.getElementById(`new-task-title-${status}`);
         const responsibleInput = document.getElementById(`new-task-responsible-${status}`);
         const deadlineInput = document.getElementById(`new-task-deadline-${status}`);
@@ -803,7 +838,7 @@
         };
         
         try {
-            await window.addDoc(window.collection(window.db, dbCollectionPath), newTask);
+            await window.addDoc(tasksCollectionRef, newTask);
             titleInput.value = '';
             responsibleInput.value = '';
             deadlineInput.value = '';
@@ -814,12 +849,9 @@
     }
 
     window.updateTask = async function(taskId, newData) {
-        if (!authUser) {
-            showModal('Erro', 'Você precisa estar logado para atualizar tarefas.');
-            return;
-        }
+        if (!authUser || !tasksCollectionRef) return;
         try {
-            const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
+            const taskDocRef = window.doc(tasksCollectionRef, taskId);
             await window.updateDoc(taskDocRef, newData);
         } catch (error) {
             showModal('Erro ao atualizar tarefa', error.message);
@@ -828,19 +860,16 @@
     }
 
     window.deleteTask = async function(button) {
-        if (!authUser) {
-            showModal('Erro', 'Você precisa estar logado para deletar tarefas.');
-            return;
-        }
+        if (!authUser || !tasksCollectionRef) return;
         const taskId = button.closest('.kanban-task').getAttribute('data-id');
         const confirmDelete = await showModal('Confirmação', 'Tem certeza que deseja excluir esta tarefa?', true);
         if (confirmDelete) {
             try {
-                const taskDocRef = window.doc(window.db, dbCollectionPath, taskId);
+                const taskDocRef = window.doc(tasksCollectionRef, taskId);
                 await window.deleteDoc(taskDocRef);
             } catch (error) {
-                showModal('Erro ao deletar tarefa', error.message);
-                console.error('Erro ao deletar tarefa:', error);
+                showModal('Erro ao excluir tarefa', error.message);
+                console.error('Erro ao excluir tarefa:', error);
             }
         }
     }
@@ -849,230 +878,156 @@
         const taskElement = button.closest('.kanban-task');
         const taskId = taskElement.getAttribute('data-id');
         const currentTitle = taskElement.querySelector('strong').textContent;
-        const newTitle = await showPromptModal('Editar tarefa', 'Novo título:', currentTitle);
-        if (newTitle && newTitle.trim() !== '' && newTitle !== currentTitle) {
+        const newTitle = await showPromptModal('Editar Título', 'Novo título da tarefa:', currentTitle);
+        if (newTitle !== null && newTitle.trim() !== '') {
             await updateTask(taskId, { title: newTitle.trim() });
         }
     }
-    
+
     window.editTaskResponsible = async function(button) {
         const taskElement = button.closest('.kanban-task');
         const taskId = taskElement.getAttribute('data-id');
-        const currentResponsible = taskElement.querySelector('.meta span:nth-child(1)').textContent.replace('Responsável: ', '');
-        const newResponsible = await showPromptModal('Atribuir', 'Novo responsável:', currentResponsible);
-        if (newResponsible && newResponsible.trim() !== '') {
-            await updateTask(taskId, { responsible: newResponsible.trim() });
-        } else if (newResponsible === '') {
-             await updateTask(taskId, { responsible: null });
+        const metaSpan = taskElement.querySelector('.meta span:first-child');
+        const currentResponsible = metaSpan.textContent.replace('Responsável: ', '').replace('A definir', '').trim();
+        const newResponsible = await showPromptModal('Atribuir Responsável', 'Nome do responsável:', currentResponsible);
+        if (newResponsible !== null) {
+            await updateTask(taskId, { responsible: newResponsible.trim() || null });
         }
-        button.closest('.settings-menu').hidden = true;
+        taskElement.querySelector('.settings-menu').hidden = true;
     }
 
     window.editTaskDeadline = async function(button) {
         const taskElement = button.closest('.kanban-task');
         const taskId = taskElement.getAttribute('data-id');
-        const currentDeadline = taskElement.querySelector('.meta span:nth-child(2)').textContent.replace('Prazo: ', '');
-        const newDeadline = await showPromptModal('Definir Prazo', 'Novo prazo (DD/MM/AAAA):', currentDeadline);
-        if (newDeadline && newDeadline.trim() !== '') {
-             await updateTask(taskId, { deadline: newDeadline.trim() });
-        } else if (newDeadline === '') {
-            await updateTask(taskId, { deadline: null });
+        const metaSpan = taskElement.querySelector('.meta span:last-child');
+        const currentDeadline = metaSpan.textContent.replace('Prazo: ', '').replace('A definir', '').trim();
+        const newDeadline = await showPromptModal('Definir Prazo', 'Prazo (DD/MM/AAAA):', currentDeadline);
+        if (newDeadline !== null) {
+            await updateTask(taskId, { deadline: newDeadline.trim() || null });
         }
-        button.closest('.settings-menu').hidden = true;
+        taskElement.querySelector('.settings-menu').hidden = true;
     }
 
     window.openSettings = function(button) {
         const menu = button.nextElementSibling;
-        const allMenus = document.querySelectorAll('.settings-menu');
-        allMenus.forEach(m => {
-            if (m !== menu) {
-                m.hidden = true;
+        const isHidden = menu.hidden;
+        document.querySelectorAll('.settings-menu').forEach(m => m.hidden = true);
+        if (isHidden) menu.hidden = false;
+    }
+
+    // ####################### Lógica Principal e Event Listeners #######################
+
+    async function initializeApp() {
+        await window.authenticate();
+
+        window.onAuthStateChanged(window.auth, (user) => {
+            if (user) {
+                console.log("Usuário logado:", user.uid);
+                authUser = user;
+                const userId = user.uid;
+                userInfoSpan.innerHTML = `Logado como: <span style="font-weight: bold; color: var(--brand);">${userId}</span>`;
+
+                tasksCollectionRef = window.collection(window.db, `artifacts/${appId}/users/${userId}/tasks`);
+                
+                if (unsubscribeFromTasks) unsubscribeFromTasks();
+
+                const q = window.query(tasksCollectionRef);
+                unsubscribeFromTasks = window.onSnapshot(q, (snapshot) => {
+                    const tasks = [];
+                    snapshot.forEach((doc) => {
+                        tasks.push({ id: doc.id, ...doc.data() });
+                    });
+                    tasks.sort((a,b) => (a.createdAt > b.createdAt) ? 1 : -1);
+                    renderTasks(tasks);
+                }, (error) => {
+                    console.error("Erro ao buscar tarefas:", error);
+                    showModal("Erro de Conexão", "Não foi possível carregar as tarefas.");
+                });
+
+            } else {
+                console.log("Nenhum usuário logado.");
+                authUser = null;
+                tasksCollectionRef = null;
+                if (unsubscribeFromTasks) unsubscribeFromTasks();
+                renderTasks([]);
+                userInfoSpan.textContent = 'Modo Público (anônimo)';
+                showModal("Sessão Encerrada", "Você foi desconectado. Para salvar seu trabalho, recarregue a página para entrar novamente.");
             }
         });
-        menu.hidden = !menu.hidden;
+    }
+
+    async function signOutUser() {
+        const confirm = await showModal('Sair', 'Tem certeza que deseja sair da sua conta?', true);
+        if(!confirm) return;
+        try {
+            await window.signOut(window.auth);
+            console.log("Usuário deslogado com sucesso.");
+        } catch (error) {
+            console.error("Erro ao sair:", error);
+            showModal("Erro", "Não foi possível sair. Tente novamente.");
+        }
     }
     
-    // ####################### Lógica do Drag and Drop #######################
+    // Listeners de Navegação
+    navItems.forEach(item => {
+        const view = item.dataset.view;
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (view === 'signout') {
+                signOutUser();
+            } else {
+                renderView(view);
+            }
+        });
+    });
 
+    // Listener para o botão principal de adicionar tarefa
+    document.getElementById('add-task-btn').addEventListener('click', () => {
+        document.getElementById('new-task-title-todo').focus();
+    });
+
+    // Listeners de Drag and Drop (delegação de evento)
     kanbanBoard.addEventListener('dragstart', (e) => {
-        if (!authUser) {
-             showModal('Erro', 'Você precisa estar logado para mover tarefas.');
-             e.preventDefault();
-             return;
-        }
         if (e.target.classList.contains('kanban-task')) {
             draggedItem = e.target;
-            setTimeout(() => {
-                e.target.classList.add('dragging');
-            }, 0);
+            setTimeout(() => e.target.classList.add('dragging'), 0);
         }
     });
 
     kanbanBoard.addEventListener('dragend', (e) => {
-        if (draggedItem) {
-            draggedItem.classList.remove('dragging');
-            draggedItem = null;
+        if(draggedItem) {
+           draggedItem.classList.remove('dragging');
+           draggedItem = null;
         }
     });
 
     kanbanBoard.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const target = e.target.closest('.kanban-tasks');
-        if (target && draggedItem) {
-            const afterElement = getDragAfterElement(target, e.clientY);
-            if (afterElement == null) {
-                target.appendChild(draggedItem);
-            } else {
-                target.insertBefore(draggedItem, afterElement);
-            }
-        }
+        e.preventDefault(); // Necessário para permitir o drop
     });
 
     kanbanBoard.addEventListener('drop', async (e) => {
         e.preventDefault();
-        const targetColumn = e.target.closest('.kanban-tasks');
-        if (targetColumn && draggedItem) {
-            const newStatus = targetColumn.getAttribute('data-status');
-            const taskId = draggedItem.getAttribute('data-id');
-            const currentStatus = draggedItem.getAttribute('data-status');
-
-            if (newStatus !== currentStatus) {
-                const updateData = { status: newStatus };
-                if (newStatus === 'done') {
-                    updateData.deadline = `Concluído: ${new Date().toLocaleDateString('pt-BR')}`;
-                } else if (currentStatus === 'done') {
-                    const currentDeadline = draggedItem.querySelector('.meta span:nth-child(2)').textContent.replace('Prazo: ', '');
-                    updateData.deadline = currentDeadline;
-                }
-                await updateTask(taskId, updateData);
+        const column = e.target.closest('.kanban-tasks');
+        if (column && draggedItem) {
+            const newStatus = column.dataset.status;
+            const taskId = draggedItem.dataset.id;
+            if(draggedItem.dataset.status !== newStatus){
+                await updateTask(taskId, { status: newStatus });
             }
         }
     });
 
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.kanban-task:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    // ####################### Lógica da IA Kaizen #######################
-
-    function updateKaizenSuggestions(tasks) {
-        kaizenSuggestions.innerHTML = ''; 
-
-        const tasksByStatus = tasks.reduce((acc, task) => {
-            acc[task.status] = acc[task.status] || [];
-            acc[task.status].push(task);
-            return acc;
-        }, {});
-        
-        const todoTasks = tasksByStatus.todo || [];
-        const doingTasks = tasksByStatus.doing || [];
-        const doneTasks = tasksByStatus.done || [];
-
-        // Sugestão: Checklist para tarefas sem responsável
-        const withoutResponsible = todoTasks.filter(t => !t.responsible);
-        if (withoutResponsible.length > 0) {
-            kaizenSuggestions.innerHTML += `<p>Há ${withoutResponsible.length} tarefa(s) sem responsável. Considere atribuí-las a alguém.</p>`;
+    // Listener para fechar menus de contexto
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.actions')) {
+            document.querySelectorAll('.settings-menu').forEach(menu => {
+                menu.hidden = true;
+            });
         }
-        
-        // Sugestão: Cuidado com prazos
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        
-        const overdueTasks = todoTasks.filter(task => {
-            if (task.deadline) {
-                try {
-                    const [day, month, year] = task.deadline.split('/').map(Number);
-                    const deadlineDate = new Date(year, month - 1, day);
-                    return deadlineDate < today;
-                } catch(e) {
-                    return false;
-                }
-            }
-            return false;
-        });
-
-        if (overdueTasks.length > 0) {
-            kaizenSuggestions.innerHTML += `<p><strong>Atenção:</strong> ${overdueTasks.length} tarefa(s) estão com o prazo vencido!</p>`;
-        }
-
-        // Sugestão: Reunião para revisar gargalos
-        if (doingTasks.length > 3 && doingTasks.length > todoTasks.length) {
-            kaizenSuggestions.innerHTML += `<p>Há muitos itens em "Fazendo". Isso pode indicar gargalos. Considere uma reunião rápida para realinhar prioridades.</p>`;
-        }
-
-        // Sugestão: Celebrar conclusões
-        if (doneTasks.length > 0) {
-             kaizenSuggestions.innerHTML += `<p>Ótimo trabalho! Lembre-se de celebrar as pequenas vitórias da equipe. 🎉</p>`;
-        }
-
-        if (kaizenSuggestions.innerHTML === '') {
-            kaizenSuggestions.innerHTML = '<p>Nenhuma sugestão Kaizen no momento. Continue o bom trabalho!</p>';
-        }
-    }
-
-    // ####################### Funções para os botões de navegação #######################
-
-    window.signOutUser = async function() {
-        try {
-            await window.signOut(window.auth);
-            showModal('Sessão Encerrada', 'Você foi desconectado(a) com sucesso. Por favor, recarregue a página para acessar novamente.');
-        } catch (error) {
-            showModal('Erro ao Sair', error.message);
-            console.error('Erro ao sair:', error);
-        }
-    }
-
-    // ####################### Inicialização #######################
-
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('add-task-btn').addEventListener('click', () => {
-            showModal('Adicionar Tarefa', 'Por favor, use os campos abaixo das colunas para adicionar uma nova tarefa.');
-        });
-        
-        // Esconder menu de configurações ao clicar fora
-        window.addEventListener('click', (e) => {
-            if (!e.target.closest('.settings-menu') && !e.target.closest('.kanban-task .actions button')) {
-                document.querySelectorAll('.settings-menu').forEach(menu => menu.hidden = true);
-            }
-        });
-
-        // Autentica e inicia a escuta do banco
-        window.onAuthStateChanged(window.auth, (user) => {
-            if (user) {
-                authUser = user;
-                const userId = authUser.uid;
-                
-                userInfoSpan.textContent = `Usuário ID: ${userId}`;
-                document.getElementById('board-title').textContent = `Quadro de Operações`;
-                
-                // Define o caminho da coleção com base no usuário autenticado
-                dbCollectionPath = `/artifacts/${appId}/users/${userId}/tasks`;
-                
-                // Real-time listener para a coleção de tarefas
-                window.onSnapshot(window.collection(window.db, dbCollectionPath), (querySnapshot) => {
-                    const tasks = [];
-                    querySnapshot.forEach((doc) => {
-                        tasks.push({ id: doc.id, ...doc.data() });
-                    });
-                    renderTasks(tasks);
-                });
-
-            } else {
-                console.log("Nenhum usuário logado. Autenticando anonimamente.");
-                window.authenticate();
-            }
-        });
     });
 
+    // Iniciar a aplicação
+    document.addEventListener('DOMContentLoaded', initializeApp);
   </script>
 </body>
 </html>
