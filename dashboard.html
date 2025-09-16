@@ -40,6 +40,10 @@
     .kanban-column{background:#121935;border-radius:14px;padding:15px;display:flex;flex-direction:column;}
     .kanban-tasks{flex:1;min-height:100px;padding:10px;background:rgba(0,0,0,.05);border-radius:8px;}
     .kanban-task{background:#161e42;padding:12px;margin-bottom:10px;border-radius:10px;cursor:grab;}
+    .kanban-task .actions{margin-top:8px;display:flex;gap:6px;}
+    .kanban-task .actions button{background:none;border:none;color:#b9c2e0;cursor:pointer;font-size:14px;}
+    .kanban-task .actions button:hover{color:#fff;}
+    .kanban-task .actions button.delete:hover{color:#ef4444;}
     .add-task{margin-top:15px;padding-top:15px;border-top:1px dashed rgba(255,255,255,.1);}
     .add-task input{width:100%;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;}
     .add-task button{padding:10px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
@@ -102,7 +106,13 @@
         const el = document.createElement('div');
         el.classList.add('kanban-task');
         el.setAttribute('data-id', task.id);
-        el.innerHTML = `<strong>${task.title}</strong><br><small>${task.responsible || 'Sem responsável'} - ${task.deadline || 'Sem prazo'}</small>`;
+        el.innerHTML = `
+          <strong>${task.title}</strong><br>
+          <small>${task.responsible || 'Sem responsável'} - ${task.deadline || 'Sem prazo'}</small>
+          <div class="actions">
+            <button onclick="editTask('${task.id}')">✏️</button>
+            <button class="delete" onclick="deleteTask('${task.id}')">🗑️</button>
+          </div>`;
         columns[task.status].appendChild(el);
       });
     }
@@ -111,20 +121,3 @@
       const title = document.getElementById(`new-task-title-${status}`).value.trim();
       const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
       const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
-
-      if(!title) return alert('O título é obrigatório');
-      const task = {title, responsible: responsible||null, deadline: deadline||null, status, createdAt:new Date().toISOString()};
-      await window.addDoc(window.collection(window.db, dbCollectionPath), task);
-      document.getElementById(`new-task-title-${status}`).value = '';
-      document.getElementById(`new-task-responsible-${status}`).value = '';
-      document.getElementById(`new-task-deadline-${status}`).value = '';
-    }
-
-    window.onSnapshot(window.collection(window.db, dbCollectionPath), (snapshot)=>{
-      const tasks = [];
-      snapshot.forEach(doc=>tasks.push({id:doc.id,...doc.data()}));
-      renderTasks(tasks);
-    });
-  </script>
-</body>
-</html>
