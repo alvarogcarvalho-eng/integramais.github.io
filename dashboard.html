@@ -7,12 +7,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script>
-    // CONFIGURAÇÕES DO FIREBASE
+    // CONFIGURAÇÕES DO FIREBASE (substitua pelos dados do seu projeto)
     const firebaseConfig = {
       apiKey: "SUA_API_KEY",
       authDomain: "SEU_PROJECT_ID.firebaseapp.com",
@@ -24,7 +24,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const dbCollectionPath = "public/tasks";
+    const dbCollectionPath = "publicTasks"; // coleção simples
   </script>
 
   <style>
@@ -34,17 +34,13 @@
     .kanban-column{background:#121935;border-radius:14px;padding:15px;display:flex;flex-direction:column;}
     .kanban-tasks{flex:1;min-height:100px;padding:10px;background:rgba(0,0,0,.05);border-radius:8px;}
     .kanban-task{background:#161e42;padding:12px;margin-bottom:10px;border-radius:10px;cursor:grab;}
-    .kanban-task.dragging{opacity:0.5;border:2px dashed #6ee7ff;}
     .kanban-task .actions{margin-top:8px;display:flex;gap:6px;}
     .kanban-task .actions button{background:none;border:none;color:#b9c2e0;cursor:pointer;font-size:14px;}
-    .kanban-task .actions button:hover{color:#fff;}
-    .kanban-task .actions button.delete:hover{color:#ef4444;}
     .add-task{margin-top:15px;padding-top:15px;border-top:1px dashed rgba(255,255,255,.1);}
     .add-task input{width:100%;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;}
     .add-task button{padding:10px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
     .kaizen-ia{margin:20px;background:#161e42;padding:15px;border-radius:12px;}
     .kaizen-ia h3{margin-top:0;color:#6ee7ff;}
-    .kaizen-ia p{margin:6px 0;}
     .kaizen-ask{margin-top:10px;display:flex;gap:10px;}
     .kaizen-ask input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;}
     .kaizen-ask button{padding:8px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
@@ -130,17 +126,13 @@
             <button onclick="editTask('${task.id}')">✏️</button>
             <button class="delete" onclick="deleteTask('${task.id}')">🗑️</button>
           </div>`;
-        columns[task.status].appendChild(el);
+        if(columns[task.status]) columns[task.status].appendChild(el);
       });
 
       updateKaizenSuggestions(tasks);
     }
 
-    async function loadTasks(){
-      const snapshot = await db.collection(dbCollectionPath).get();
-      const tasks = [];
-      snapshot.forEach(doc=>tasks.push({id:doc.id,...doc.data()}));
-      renderTasks(tasks);
+    function loadTasks(){
       db.collection(dbCollectionPath).onSnapshot(snap=>{
         const liveTasks = [];
         snap.forEach(doc=>liveTasks.push({id:doc.id,...doc.data()}));
