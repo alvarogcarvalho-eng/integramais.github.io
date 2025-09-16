@@ -10,7 +10,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, updateDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -22,14 +22,11 @@
     window.firebaseApp = initializeApp(firebaseConfig);
     window.db = getFirestore(window.firebaseApp);
 
-    // Exportar funções globais
     window.doc = doc;
-    window.setDoc = setDoc;
     window.updateDoc = updateDoc;
     window.deleteDoc = deleteDoc;
     window.onSnapshot = onSnapshot;
     window.collection = collection;
-    window.query = query;
     window.addDoc = addDoc;
   </script>
 
@@ -40,6 +37,7 @@
     .kanban-column{background:#121935;border-radius:14px;padding:15px;display:flex;flex-direction:column;}
     .kanban-tasks{flex:1;min-height:100px;padding:10px;background:rgba(0,0,0,.05);border-radius:8px;}
     .kanban-task{background:#161e42;padding:12px;margin-bottom:10px;border-radius:10px;cursor:grab;}
+    .kanban-task.dragging{opacity:0.5;border:2px dashed #6ee7ff;}
     .kanban-task .actions{margin-top:8px;display:flex;gap:6px;}
     .kanban-task .actions button{background:none;border:none;color:#b9c2e0;cursor:pointer;font-size:14px;}
     .kanban-task .actions button:hover{color:#fff;}
@@ -47,6 +45,9 @@
     .add-task{margin-top:15px;padding-top:15px;border-top:1px dashed rgba(255,255,255,.1);}
     .add-task input{width:100%;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;}
     .add-task button{padding:10px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
+    .kaizen-ia{margin:20px;background:#161e42;padding:15px;border-radius:12px;}
+    .kaizen-ia h3{margin-top:0;color:#6ee7ff;}
+    .kaizen-ia p{margin:6px 0;}
   </style>
 </head>
 <body>
@@ -90,9 +91,16 @@
     </div>
   </div>
 
+  <div class="kaizen-ia">
+    <h3>IA Kaizen recomendações:</h3>
+    <div id="kaizen-suggestions"><p>Carregando recomendações...</p></div>
+  </div>
+
   <script type="module">
     const kanbanBoard = document.getElementById('kanban-board');
+    const kaizenSuggestions = document.getElementById('kaizen-suggestions');
     let dbCollectionPath = `/artifacts/${appId}/public/tasks`;
+    let draggedItem = null;
 
     function renderTasks(tasks) {
       const columns = {
@@ -106,6 +114,8 @@
         const el = document.createElement('div');
         el.classList.add('kanban-task');
         el.setAttribute('data-id', task.id);
+        el.setAttribute('data-status', task.status);
+        el.setAttribute('draggable', 'true');
         el.innerHTML = `
           <strong>${task.title}</strong><br>
           <small>${task.responsible || 'Sem responsável'} - ${task.deadline || 'Sem prazo'}</small>
@@ -115,9 +125,70 @@
           </div>`;
         columns[task.status].appendChild(el);
       });
+
+      updateKaizenSuggestions(tasks);
     }
 
     window.addTask = async function(status){
       const title = document.getElementById(`new-task-title-${status}`).value.trim();
       const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
       const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
+
+      if(!title) return alert('O título é obrigatório');
+      const task = {title, responsible: responsible||null, deadline: deadline||null, status, createdAt:new Date().toISOString()};
+      await window.addDoc(window.collection(window.db, dbCollectionPath), task);
+      document.getElementById(`new-task-title-${status}`).value = '';
+      document.getElementById(`new-task-responsible-${status}`).value = '';
+      document.getElementById(`new-task-deadline-${status}`).value = '';
+    }
+
+    window.editTask = async function(id){
+      const newTitle = prompt('Novo título da tarefa:');
+      if(newTitle && newTitle.trim() !== ''){
+        const ref = window.doc(window.db, dbCollectionPath, id);
+        await window.updateDoc(ref, {title:newTitle.trim()});
+      }
+    }
+
+    window.deleteTask = async function(id){
+      if(confirm('Deseja realmente excluir esta tarefa?')){
+        const ref = window.doc(window.db, dbCollectionPath, id);
+        await window.deleteDoc(ref);
+      }
+    }
+
+    kanbanBoard.addEventListener('dragstart', (e) => {
+      if(e.target.classList.contains('kanban-task')){
+        draggedItem = e.target;
+        setTimeout(()=>draggedItem.classList.add('dragging'),0);
+      }
+    });
+
+    kanbanBoard.addEventListener('dragend', () => {
+      if(draggedItem){
+        draggedItem.classList.remove('dragging');
+        draggedItem = null;
+      }
+    });
+
+    kanbanBoard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('.kanban-tasks');
+      if(target && draggedItem){
+        target.appendChild(draggedItem);
+      }
+    });
+
+    kanbanBoard.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const targetColumn = e.target.closest('.kanban-tasks');
+      if(targetColumn && draggedItem){
+        const newStatus = targetColumn.getAttribute('data-status');
+        const taskId = draggedItem.getAttribute('data-id');
+        const currentStatus = draggedItem.getAttribute('data-status');
+
+        if(newStatus !== currentStatus){
+          const ref = window.doc(window.db, dbCollectionPath, taskId);
+          let updateData = {status:newStatus};
+          if(newStatus === 'done'){
+            updateData.deadline = `Concluído: ${new Date().toLocaleDateString('pt-BR
