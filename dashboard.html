@@ -48,6 +48,9 @@
     .kaizen-ia{margin:20px;background:#161e42;padding:15px;border-radius:12px;}
     .kaizen-ia h3{margin-top:0;color:#6ee7ff;}
     .kaizen-ia p{margin:6px 0;}
+    .kaizen-ask{margin-top:10px;display:flex;gap:10px;}
+    .kaizen-ask input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;}
+    .kaizen-ask button{padding:8px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
   </style>
 </head>
 <body>
@@ -65,130 +68,4 @@
       <div class="add-task">
         <input type="text" placeholder="Tarefa..." id="new-task-title-todo">
         <input type="text" placeholder="Responsável..." id="new-task-responsible-todo">
-        <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-todo">
-        <button onclick="addTask('todo')">Adicionar</button>
-      </div>
-    </div>
-    <div class="kanban-column">
-      <h2>Fazendo</h2>
-      <div class="kanban-tasks" data-status="doing"></div>
-      <div class="add-task">
-        <input type="text" placeholder="Tarefa..." id="new-task-title-doing">
-        <input type="text" placeholder="Responsável..." id="new-task-responsible-doing">
-        <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-doing">
-        <button onclick="addTask('doing')">Adicionar</button>
-      </div>
-    </div>
-    <div class="kanban-column">
-      <h2>Feito</h2>
-      <div class="kanban-tasks" data-status="done"></div>
-      <div class="add-task">
-        <input type="text" placeholder="Tarefa..." id="new-task-title-done">
-        <input type="text" placeholder="Responsável..." id="new-task-responsible-done">
-        <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-done">
-        <button onclick="addTask('done')">Adicionar</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="kaizen-ia">
-    <h3>IA Kaizen recomendações:</h3>
-    <div id="kaizen-suggestions"><p>Carregando recomendações...</p></div>
-  </div>
-
-  <script type="module">
-    const kanbanBoard = document.getElementById('kanban-board');
-    const kaizenSuggestions = document.getElementById('kaizen-suggestions');
-    let dbCollectionPath = `/artifacts/${appId}/public/tasks`;
-    let draggedItem = null;
-
-    function renderTasks(tasks) {
-      const columns = {
-        todo: document.querySelector('.kanban-tasks[data-status="todo"]'),
-        doing: document.querySelector('.kanban-tasks[data-status="doing"]'),
-        done: document.querySelector('.kanban-tasks[data-status="done"]')
-      };
-      Object.values(columns).forEach(col => col.innerHTML = '');
-
-      tasks.forEach(task => {
-        const el = document.createElement('div');
-        el.classList.add('kanban-task');
-        el.setAttribute('data-id', task.id);
-        el.setAttribute('data-status', task.status);
-        el.setAttribute('draggable', 'true');
-        el.innerHTML = `
-          <strong>${task.title}</strong><br>
-          <small>${task.responsible || 'Sem responsável'} - ${task.deadline || 'Sem prazo'}</small>
-          <div class="actions">
-            <button onclick="editTask('${task.id}')">✏️</button>
-            <button class="delete" onclick="deleteTask('${task.id}')">🗑️</button>
-          </div>`;
-        columns[task.status].appendChild(el);
-      });
-
-      updateKaizenSuggestions(tasks);
-    }
-
-    window.addTask = async function(status){
-      const title = document.getElementById(`new-task-title-${status}`).value.trim();
-      const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
-      const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
-
-      if(!title) return alert('O título é obrigatório');
-      const task = {title, responsible: responsible||null, deadline: deadline||null, status, createdAt:new Date().toISOString()};
-      await window.addDoc(window.collection(window.db, dbCollectionPath), task);
-      document.getElementById(`new-task-title-${status}`).value = '';
-      document.getElementById(`new-task-responsible-${status}`).value = '';
-      document.getElementById(`new-task-deadline-${status}`).value = '';
-    }
-
-    window.editTask = async function(id){
-      const newTitle = prompt('Novo título da tarefa:');
-      if(newTitle && newTitle.trim() !== ''){
-        const ref = window.doc(window.db, dbCollectionPath, id);
-        await window.updateDoc(ref, {title:newTitle.trim()});
-      }
-    }
-
-    window.deleteTask = async function(id){
-      if(confirm('Deseja realmente excluir esta tarefa?')){
-        const ref = window.doc(window.db, dbCollectionPath, id);
-        await window.deleteDoc(ref);
-      }
-    }
-
-    kanbanBoard.addEventListener('dragstart', (e) => {
-      if(e.target.classList.contains('kanban-task')){
-        draggedItem = e.target;
-        setTimeout(()=>draggedItem.classList.add('dragging'),0);
-      }
-    });
-
-    kanbanBoard.addEventListener('dragend', () => {
-      if(draggedItem){
-        draggedItem.classList.remove('dragging');
-        draggedItem = null;
-      }
-    });
-
-    kanbanBoard.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      const target = e.target.closest('.kanban-tasks');
-      if(target && draggedItem){
-        target.appendChild(draggedItem);
-      }
-    });
-
-    kanbanBoard.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      const targetColumn = e.target.closest('.kanban-tasks');
-      if(targetColumn && draggedItem){
-        const newStatus = targetColumn.getAttribute('data-status');
-        const taskId = draggedItem.getAttribute('data-id');
-        const currentStatus = draggedItem.getAttribute('data-status');
-
-        if(newStatus !== currentStatus){
-          const ref = window.doc(window.db, dbCollectionPath, taskId);
-          let updateData = {status:newStatus};
-          if(newStatus === 'done'){
-            updateData.deadline = `Concluído: ${new Date().toLocaleDateString('pt-BR
+        <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-to
