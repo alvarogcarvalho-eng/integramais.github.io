@@ -62,7 +62,7 @@
     .tag{font-size:12px; padding:2px 8px; border:1px solid rgba(255,255,255,.14); border-radius:999px; color:var(--muted)}
     .actions{display:flex; gap:10px; align-items:center}
     .btn{
-      display:inline-flex; align-items:center; gap:10px;
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
       padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
       background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
       color:var(--text); font-weight:600; cursor:pointer;
@@ -364,13 +364,37 @@
           <div class="speak"><button class="btn primary" id="cta-speak">Ouvir chamada</button></div>
         </div>
         <form class="card">
+            <!-- Email -->
             <label for="email">Seu e-mail</label>
             <input id="email" required type="email" placeholder="voce@empresa.com"
-                style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text)">
-            <label for="empresa" style="margin-top:10px; display:block">Empresa</label>
+                style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text); font-family:inherit; font-size:16px;">
+            
+            <!-- Empresa -->
+            <label for="empresa" style="margin-top:12px; display:block">Empresa</label>
             <input id="empresa" type="text" placeholder="Nome da empresa"
-                style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text)">
-            <button type="button" class="btn-primary" onclick="window.location.href='dashboard.html';">
+                style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text); font-family:inherit; font-size:16px;">
+            
+            <!-- Setor -->
+            <label for="setor" style="margin-top:12px; display:block">Setor</label>
+            <input id="setor" type="text" placeholder="Ex: Financeiro, Marketing"
+                style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text); font-family:inherit; font-size:16px;">
+
+            <!-- Cargo -->
+            <label for="cargo" style="margin-top:12px; display:block">Cargo</label>
+            <select id="cargo" required
+                style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text); font-family:inherit; font-size:16px; appearance: none;">
+                <option value="" disabled selected>Selecione seu cargo</option>
+                <option value="funcionario">Funcionário</option>
+                <option value="gestor">Gestor</option>
+            </select>
+
+            <!-- Senha -->
+            <label for="senha" style="margin-top:12px; display:block">Senha</label>
+            <input id="senha" required type="password" placeholder="Crie uma senha de acesso"
+                style="margin-top:6px; width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.04); color:var(--text); font-family:inherit; font-size:16px;">
+            
+            <!-- Botão -->
+            <button type="button" class="btn primary" style="width:100%; margin-top:18px;" onclick="window.location.href='dashboard.html';">
               Quero o integra+
             </button>
         </form>
