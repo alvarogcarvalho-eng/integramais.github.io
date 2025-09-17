@@ -244,7 +244,7 @@
         askKaizenBtn.disabled = true;
 
         const apiKey = ""; // A API Key é deixada em branco, pois será injetada pelo ambiente
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent`;
 
         // Define o comportamento e o contexto para a IA
         const systemPrompt = `Você é Kaizen, uma IA assistente especialista em otimização de fluxos de trabalho Kanban. Responda sempre em português. A sua personalidade é prestável e focada em dados. Analise o estado atual do quadro Kanban e responda à pergunta do utilizador de forma concisa.`;
@@ -262,7 +262,10 @@
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey, // Correção: Passa a chave da API no cabeçalho
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -291,3 +294,4 @@
   </script>
 </body>
 </html>
+
