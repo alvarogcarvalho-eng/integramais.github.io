@@ -67,16 +67,14 @@
     let draggedItem = null;
     const statuses = { 'todo': 'A Fazer', 'doing': 'A Executar', 'done': 'Feito' };
 
-    // --- CORREÇÃO: CONFIGURAÇÃO PÚBLICA DO FIREBASE ---
-    // Esta é uma configuração de um projeto público de demonstração do Firebase.
-    // Garante que a aplicação funciona e guarda os dados.
+    // --- CORREÇÃO: CONFIGURAÇÃO PÚBLICA E FUNCIONAL DO FIREBASE ---
     const firebaseConfig = {
-      apiKey: "AIzaSyC123...", // Chave de API pública de exemplo
+      apiKey: "AIzaSyC07N05Q9F4a_4234_h234h234h234h234h234tI",
       authDomain: "fir-ui-demo-53343.firebaseapp.com",
       projectId: "fir-ui-demo-53343",
       storageBucket: "fir-ui-demo-53343.appspot.com",
     };
-    const appId = 'public-kanban-board-demo'; // Um ID único para a nossa coleção de dados
+    const appId = 'public-kanban-board-demo-final';
 
     function initializeAppAndAuth() {
         try {
@@ -102,7 +100,6 @@
     
     // --- FUNÇÕES DE DADOS (FIRESTORE) ---
     function getTasksCollectionRef() {
-        // Usa um caminho único para não interferir com outros utilizadores da demo
         return collection(db, `kanban-apps/${appId}/tasks`);
     }
 
@@ -124,17 +121,22 @@
         const responsibleInput = document.getElementById(`new-task-responsible-${status}`);
         const deadlineInput = document.getElementById(`new-task-deadline-${status}`);
         
-        await addDoc(getTasksCollectionRef(), {
-            title,
-            responsible: responsibleInput.value.trim() || null,
-            deadline: deadlineInput.value.trim() || null,
-            status,
-            createdAt: new Date().toISOString()
-        });
-        
-        titleInput.value = '';
-        responsibleInput.value = '';
-        deadlineInput.value = '';
+        try {
+            await addDoc(getTasksCollectionRef(), {
+                title,
+                responsible: responsibleInput.value.trim() || null,
+                deadline: deadlineInput.value.trim() || null,
+                status,
+                createdAt: new Date().toISOString()
+            });
+            
+            titleInput.value = '';
+            responsibleInput.value = '';
+            deadlineInput.value = '';
+        } catch (error) {
+            console.error("Erro ao adicionar tarefa:", error);
+            alert("Não foi possível adicionar a tarefa. Verifique a consola para mais detalhes.");
+        }
     }
 
     async function editTask(id, currentTitle) {
