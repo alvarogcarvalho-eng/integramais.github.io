@@ -235,7 +235,7 @@
       }
     }
 
-    // --- SECÇÃO DA IA COM SIMULAÇÃO LOCAL (GARANTIDO QUE FUNCIONA) ---
+    // --- SECÇÃO DA IA MELHORADA (LOCAL) ---
     window.askKaizen = async function() {
         const question = document.getElementById('kaizen-question').value.trim().toLowerCase();
         if (!question) return;
@@ -243,18 +243,24 @@
         kaizenAnswer.textContent = 'A IA está a analisar os dados...';
         askKaizenBtn.disabled = true;
 
-        // Simula um pequeno atraso de rede para uma melhor experiência do utilizador
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        let responseText = "Não tenho a certeza de como responder a isso. Tente perguntar sobre tarefas atrasadas, concluídas, um resumo do quadro, ou tarefas sem responsável.";
+        let responseText = `Não tenho a certeza de como ajudar com isso. Tente perguntar sobre:\n• "quais tarefas estão atrasadas?"\n• "resumo do quadro"\n• "quem está a fazer o quê?"\n• "tarefas sem responsável"`;
 
         try {
             const todo = currentTasks.filter(t => t.status === 'todo');
             const doing = currentTasks.filter(t => t.status === 'doing');
             const done = currentTasks.filter(t => t.status === 'done');
 
-            // Análise de palavras-chave na pergunta
-            if (question.includes('atrasada') || question.includes('atraso')) {
+            const keywords = {
+                overdue: ['atrasada', 'atraso', 'prazo'],
+                summary: ['resumo', 'geral', 'visão', 'tudo'],
+                doing: ['fazendo', 'executando', 'andamento', 'quem'],
+                unassigned: ['sem responsável', 'livre', 'disponível'],
+                done: ['concluída', 'feita', 'terminada']
+            };
+
+            if (keywords.overdue.some(k => question.includes(k))) {
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const overdue = currentTasks.filter(t => {
                     if (t.status === 'done' || !t.deadline || !t.deadline.includes('/')) return false;
@@ -263,36 +269,39 @@
                         return new Date(`${year}-${month}-${day}`) < today;
                     } catch { return false; }
                 });
-
                 if (overdue.length === 0) {
-                    responseText = "Excelente! Não há nenhuma tarefa atrasada no momento.";
+                    responseText = "Boas notícias! Nenhuma tarefa parece estar atrasada.";
                 } else {
-                    responseText = `Atenção: Existem ${overdue.length} tarefas atrasadas. São elas:\n` + overdue.map(t => `• "${t.title}"`).join('\n');
+                    responseText = `Encontrei ${overdue.length} tarefa(s) atrasada(s):\n` + overdue.map(t => `• "${t.title}" (Prazo: ${t.deadline})`).join('\n');
                 }
-            } else if (question.includes('concluída') || question.includes('feita')) {
-                responseText = `Até agora, ${done.length} tarefas foram concluídas. O total de tarefas no quadro é de ${currentTasks.length}.`;
-            } else if (question.includes('executar') || question.includes('andamento')) {
+            } else if (keywords.summary.some(k => question.includes(k))) {
+                 responseText = `Aqui está um resumo do quadro:\n- ${todo.length} tarefa(s) por fazer.\n- ${doing.length} tarefa(s) em execução.\n- ${done.length} tarefa(s) já concluídas.`;
+            } else if (keywords.doing.some(k => question.includes(k))) {
                 if (doing.length === 0) {
-                    responseText = "Nenhuma tarefa está em execução no momento.";
+                    responseText = "Ninguém está a executar tarefas neste momento.";
                 } else {
-                    responseText = `Existem ${doing.length} tarefas em execução:\n` + doing.map(t => `• "${t.title}" (Responsável: ${t.responsible || 'N/D'})`).join('\n');
+                    responseText = `Atualmente, ${doing.length} tarefa(s) estão em execução:\n` + doing.map(t => `• "${t.title}" por ${t.responsible || 'Ninguém'}`).join('\n');
                 }
-            } else if (question.includes('responsável') || question.includes('quem faz')) {
-                 const tasksWithoutResponsible = todo.filter(t => !t.responsible);
-                 if (tasksWithoutResponsible.length > 0) {
-                     responseText = `Encontrei ${tasksWithoutResponsible.length} tarefas na coluna "A Fazer" que ainda não têm um responsável atribuído. É importante definir responsáveis para que o trabalho avance.`;
-                 } else {
-                     responseText = "Ótimo! Todas as tarefas na coluna 'A Fazer' já têm um responsável definido.";
-                 }
-            } else if (question.includes('resumo') || question.includes('geral')) {
-                responseText = `Resumo do quadro:\n• A Fazer: ${todo.length} tarefas\n• A Executar: ${doing.length} tarefas\n• Feito: ${done.length} tarefas\nContinue com o bom trabalho!`;
+            } else if (keywords.unassigned.some(k => question.includes(k))) {
+                const unassigned = todo.filter(t => !t.responsible);
+                if (unassigned.length === 0) {
+                    responseText = "Excelente! Todas as tarefas por fazer já têm um responsável.";
+                } else {
+                    responseText = `Existem ${unassigned.length} tarefas por fazer que ainda não foram atribuídas a ninguém.`;
+                }
+            } else if (keywords.done.some(k => question.includes(k))) {
+                 if (done.length === 0) {
+                    responseText = "Ainda nenhuma tarefa foi concluída.";
+                } else {
+                    responseText = `Já foram concluídas ${done.length} tarefas. Bom trabalho!`;
+                }
             }
 
             kaizenAnswer.textContent = responseText;
 
         } catch (error) {
-            console.error("Erro na simulação da IA:", error);
-            kaizenAnswer.textContent = "Ocorreu um erro inesperado ao processar o seu pedido.";
+            console.error("Erro na IA local:", error);
+            kaizenAnswer.textContent = "Ocorreu um erro ao processar o seu pedido.";
         } finally {
             askKaizenBtn.disabled = false;
         }
@@ -303,4 +312,3 @@
   </script>
 </body>
 </html>
-
