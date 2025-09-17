@@ -12,7 +12,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script>
-    // CONFIGURAÇÕES DO FIREBASE (substitua pelos dados do seu projeto)
     const firebaseConfig = {
       apiKey: "SUA_API_KEY",
       authDomain: "SEU_PROJECT_ID.firebaseapp.com",
@@ -24,7 +23,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const dbCollectionPath = "publicTasks"; // coleção simples
+    const dbCollectionPath = "publicTasks";
   </script>
 
   <style>
@@ -213,47 +212,4 @@
       const done = tasks.filter(t=>t.status==='done');
 
       if(todo.some(t=>!t.responsible)){
-        kaizenSuggestions.innerHTML += `<p>Há tarefas sem responsável. Atribua para evitar atrasos.</p>`;
-      }
-      const today = new Date();today.setHours(0,0,0,0);
-      const overdue = todo.filter(t=>t.deadline && t.deadline.includes('/') && new Date(t.deadline.split('/').reverse().join('-'))<today);
-      if(overdue.length){
-        kaizenSuggestions.innerHTML += `<p><strong>Atenção:</strong> ${overdue.length} tarefa(s) estão atrasadas!</p>`;
-      }
-      if(doing.length>3 && doing.length>todo.length){
-        kaizenSuggestions.innerHTML += `<p>Há muitos itens em andamento. Considere uma reunião para priorizar.</p>`;
-      }
-      if(done.length){
-        kaizenSuggestions.innerHTML += `<p>Parabéns! ${done.length} tarefa(s) concluídas 🎉</p>`;
-      }
-      if(!kaizenSuggestions.innerHTML){
-        kaizenSuggestions.innerHTML = '<p>Nenhuma sugestão no momento. Continue assim!</p>';
-      }
-    }
-
-    // 🔹 Função IA usando backend proxy
-    window.askKaizen = async function () {
-      const question = document.getElementById('kaizen-question').value.trim();
-      if (!question) return;
-      kaizenAnswer.textContent = "Pensando... ⏳";
-
-      try {
-        const response = await fetch("/api/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question, tasks: currentTasks })
-        });
-
-        const data = await response.json();
-        kaizenAnswer.textContent = data.answer;
-
-      } catch (err) {
-        console.error(err);
-        kaizenAnswer.textContent = "Erro ao consultar a IA.";
-      }
-    }
-
-    loadTasks();
-  </script>
-</body>
-</html>
+        kaizenSuggestions.i
