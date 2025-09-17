@@ -50,68 +50,31 @@
     <div id="kaizen-answer" style="margin-top:10px;color:#b9c2e0;white-space:pre-wrap;"></div>
   </div>
 
-  <!-- Firebase SDKs Modulares (versão mais recente) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+  <script>
     // --- ELEMENTOS DO DOM E ESTADO DA APLICAÇÃO ---
     const kanbanBoard = document.getElementById('kanban-board');
     const kaizenSuggestions = document.getElementById('kaizen-suggestions');
     const kaizenAnswer = document.getElementById('kaizen-answer');
     const askKaizenBtn = document.getElementById('ask-kaizen-btn');
     
-    let db, auth;
     let currentTasks = [];
     let draggedItem = null;
     const statuses = { 'todo': 'A Fazer', 'doing': 'A Executar', 'done': 'Feito' };
 
-    // --- CORREÇÃO: CONFIGURAÇÃO PÚBLICA E FUNCIONAL DO FIREBASE ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyC07N05Q9F4a_4234_h234h234h234h234h234tI",
-      authDomain: "fir-ui-demo-53343.firebaseapp.com",
-      projectId: "fir-ui-demo-53343",
-      storageBucket: "fir-ui-demo-53343.appspot.com",
-    };
-    const appId = 'public-kanban-board-demo-final';
-
-    function initializeAppAndAuth() {
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            
-            buildKanbanColumns(); 
-            setupEventListeners(); 
-            
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    loadTasks(); 
-                } else {
-                    signInAnonymously(auth);
-                }
-            });
-        } catch (error) {
-            console.error("Erro na inicialização do Firebase:", error);
-            kanbanBoard.innerHTML = `<p>Erro ao inicializar a aplicação: ${error.message}</p>`;
-        }
-    }
-    
-    // --- FUNÇÕES DE DADOS (FIRESTORE) ---
-    function getTasksCollectionRef() {
-        return collection(db, `kanban-apps/${appId}/tasks`);
+    // --- FUNÇÕES DE ARMAZENAMENTO LOCAL ---
+    function saveTasks() {
+        localStorage.setItem('kanbanTasks', JSON.stringify(currentTasks));
+        renderTasks(currentTasks);
     }
 
     function loadTasks() {
-        const q = query(getTasksCollectionRef(), orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
-            currentTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderTasks(currentTasks);
-        }, (error) => console.error("Erro ao carregar tarefas:", error));
+        const tasksJSON = localStorage.getItem('kanbanTasks');
+        currentTasks = tasksJSON ? JSON.parse(tasksJSON) : [];
+        renderTasks(currentTasks);
     }
     
-    async function addTask(status) {
+    // --- FUNÇÕES DE DADOS (AGORA USANDO ARMAZENAMENTO LOCAL) ---
+    function addTask(status) {
         const titleInput = document.getElementById(`new-task-title-${status}`);
         const title = titleInput.value.trim();
         if (!title) {
@@ -121,34 +84,38 @@
         const responsibleInput = document.getElementById(`new-task-responsible-${status}`);
         const deadlineInput = document.getElementById(`new-task-deadline-${status}`);
         
-        try {
-            await addDoc(getTasksCollectionRef(), {
-                title,
-                responsible: responsibleInput.value.trim() || null,
-                deadline: deadlineInput.value.trim() || null,
-                status,
-                createdAt: new Date().toISOString()
-            });
-            
-            titleInput.value = '';
-            responsibleInput.value = '';
-            deadlineInput.value = '';
-        } catch (error) {
-            console.error("Erro ao adicionar tarefa:", error);
-            alert("Não foi possível adicionar a tarefa. Verifique a consola para mais detalhes.");
-        }
+        const newTask = {
+            id: 'task-' + Date.now(), // ID único
+            title,
+            responsible: responsibleInput.value.trim() || null,
+            deadline: deadlineInput.value.trim() || null,
+            status,
+            createdAt: new Date().toISOString()
+        };
+        
+        currentTasks.push(newTask);
+        saveTasks();
+        
+        titleInput.value = '';
+        responsibleInput.value = '';
+        deadlineInput.value = '';
     }
 
-    async function editTask(id, currentTitle) {
+    function editTask(id, currentTitle) {
         const newTitle = prompt('Editar título da tarefa:', currentTitle);
         if (newTitle && newTitle.trim() && newTitle.trim() !== currentTitle) {
-            await updateDoc(doc(getTasksCollectionRef(), id), { title: newTitle.trim() });
+            const task = currentTasks.find(t => t.id === id);
+            if (task) {
+                task.title = newTitle.trim();
+                saveTasks();
+            }
         }
     }
 
-    async function deleteTask(id) {
+    function deleteTask(id) {
         if (confirm('Tem a certeza de que quer apagar esta tarefa?')) {
-            await deleteDoc(doc(getTasksCollectionRef(), id));
+            currentTasks = currentTasks.filter(t => t.id !== id);
+            saveTasks();
         }
     }
     
@@ -218,13 +185,17 @@
             }
         });
         kanbanBoard.addEventListener('dragover', (e) => e.preventDefault());
-        kanbanBoard.addEventListener('drop', async (e) => {
+        kanbanBoard.addEventListener('drop', (e) => {
             e.preventDefault();
             const targetColumn = e.target.closest('.kanban-tasks');
             if (targetColumn && draggedItem) {
                 const newStatus = targetColumn.dataset.status;
                 const taskId = draggedItem.dataset.id;
-                await updateDoc(doc(getTasksCollectionRef(), taskId), { status: newStatus });
+                const task = currentTasks.find(t => t.id === taskId);
+                if(task) {
+                    task.status = newStatus;
+                    saveTasks();
+                }
             }
         });
         
@@ -330,7 +301,13 @@
     }
 
     // --- INICIA A APLICAÇÃO ---
-    initializeAppAndAuth();
+    function initializeApp() {
+        buildKanbanColumns();
+        setupEventListeners();
+        loadTasks();
+    }
+
+    initializeApp();
   </script>
 </body>
 </html>
