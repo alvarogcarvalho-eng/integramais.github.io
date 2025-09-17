@@ -106,6 +106,7 @@
     let draggedItem = null;
     let currentTasks = [];
 
+    // --- TODA A LÓGICA EXISTENTE PERMANECE IGUAL ---
     function renderTasks(tasks) {
       currentTasks = tasks;
       const columns = {
@@ -130,10 +131,8 @@
           </div>`;
         if(columns[task.status]) columns[task.status].appendChild(el);
       });
-
       updateKaizenSuggestions(tasks);
     }
-
     function loadTasks(){
       db.collection(dbCollectionPath).onSnapshot(snap=>{
         const liveTasks = [];
@@ -141,12 +140,10 @@
         renderTasks(liveTasks);
       });
     }
-
     window.addTask = async function(status){
       const title = document.getElementById(`new-task-title-${status}`).value.trim();
       const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
       const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
-
       if(!title) return alert('O título é obrigatório');
       const task = {title, responsible: responsible||null, deadline: deadline||null, status, createdAt:new Date().toISOString()};
       await db.collection(dbCollectionPath).add(task);
@@ -154,38 +151,30 @@
       document.getElementById(`new-task-responsible-${status}`).value = '';
       document.getElementById(`new-task-deadline-${status}`).value = '';
     }
-
     window.editTask = async function(id){
       const newTitle = prompt('Novo título da tarefa:');
       if(newTitle && newTitle.trim() !== ''){
         await db.collection(dbCollectionPath).doc(id).update({title:newTitle.trim()});
       }
     }
-
     window.deleteTask = async function(id){
       if(confirm('Deseja realmente apagar esta tarefa?')){
         await db.collection(dbCollectionPath).doc(id).delete();
       }
     }
-
     kanbanBoard.addEventListener('dragstart', (e) => {
       if(e.target.classList.contains('kanban-task')){
         draggedItem = e.target;
         setTimeout(()=>draggedItem.style.opacity = '0.5',0);
       }
     });
-
     kanbanBoard.addEventListener('dragend', () => {
       if(draggedItem){
         setTimeout(()=>draggedItem.style.opacity = '1',0);
         draggedItem = null;
       }
     });
-
-    kanbanBoard.addEventListener('dragover', (e) => {
-      e.preventDefault();
-    });
-
+    kanbanBoard.addEventListener('dragover', (e) => { e.preventDefault(); });
     kanbanBoard.addEventListener('drop', async (e) => {
       e.preventDefault();
       const targetColumn = e.target.closest('.kanban-tasks');
@@ -193,10 +182,8 @@
         const newStatus = targetColumn.getAttribute('data-status');
         const taskId = draggedItem.getAttribute('data-id');
         const currentStatus = draggedItem.getAttribute('data-status');
-
-        targetColumn.appendChild(draggedItem); // Move o elemento visualmente
+        targetColumn.appendChild(draggedItem);
         draggedItem.setAttribute('data-status', newStatus);
-
         if(newStatus !== currentStatus){
           let updateData = {status:newStatus};
           if(newStatus === 'done'){
@@ -206,13 +193,10 @@
         }
       }
     });
-
     function updateKaizenSuggestions(tasks){
       kaizenSuggestions.innerHTML = '';
       const todo = tasks.filter(t=>t.status==='todo');
       const doing = tasks.filter(t=>t.status==='doing');
-      const done = tasks.filter(t=>t.status==='done');
-
       if(todo.some(t=>!t.responsible)){
         kaizenSuggestions.innerHTML += `<p>• Há tarefas sem responsável. Atribua-as para evitar atrasos.</p>`;
       }
@@ -235,55 +219,51 @@
       }
     }
 
-    // --- SECÇÃO DA IA ATUALIZADA ---
+    // --- SECÇÃO DA IA CORRIGIDA E ROBUSTA ---
     window.askKaizen = async function() {
         const question = document.getElementById('kaizen-question').value.trim();
         if (!question) return;
 
-        kaizenAnswer.textContent = 'A pensar...';
+        kaizenAnswer.textContent = 'A IA está a analisar os dados...';
         askKaizenBtn.disabled = true;
 
-        const apiKey = ""; // A API Key é deixada em branco, pois será injetada pelo ambiente
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent`;
+        const apiKey = ""; // Esta chave deve ser injetada automaticamente pelo ambiente.
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-        // Define o comportamento e o contexto para a IA
-        const systemPrompt = `Você é Kaizen, uma IA assistente especialista em otimização de fluxos de trabalho Kanban. Responda sempre em português. A sua personalidade é prestável e focada em dados. Analise o estado atual do quadro Kanban e responda à pergunta do utilizador de forma concisa.`;
-        
-        const userQuery = `Baseado neste array de tarefas em formato JSON, que representa o meu quadro Kanban:
-        ${JSON.stringify(currentTasks, null, 2)}
-        
-        Responda à seguinte pergunta: "${question}"`;
+        // Um prompt mais simples e direto para a IA
+        const prompt = `Com base nesta lista de tarefas de um quadro Kanban (em formato JSON): ${JSON.stringify(currentTasks)}. Responda à seguinte pergunta de forma curta e direta: "${question}"`;
 
         const payload = {
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: userQuery }] }],
+            contents: [{ parts: [{ text: prompt }] }],
         };
 
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey, // Correção: Passa a chave da API no cabeçalho
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            
+            // Tenta sempre ler a resposta, mesmo que seja um erro, para obter detalhes.
+            const result = await response.json();
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error.message || `Erro HTTP ${response.status}`);
+                // Se a resposta não for bem-sucedida, extrai a mensagem de erro da API.
+                const errorMsg = result?.error?.message || `Erro HTTP ${response.status}. Tente novamente.`;
+                throw new Error(errorMsg);
             }
 
-            const result = await response.json();
             const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
             if (text) {
                 kaizenAnswer.textContent = text;
             } else {
-                kaizenAnswer.textContent = "Desculpe, não consegui gerar uma resposta. Tente novamente.";
+                // Caso a resposta seja OK mas não haja texto (pode ser devido a filtros de segurança).
+                const finishReason = result.candidates?.[0]?.finishReason || 'Desconhecido';
+                throw new Error(`A IA não retornou texto. Motivo: ${finishReason}.`);
             }
         } catch (error) {
-            console.error("Erro ao contactar a IA Kaizen:", error);
+            console.error("Erro detalhado ao chamar a IA:", error);
             kaizenAnswer.textContent = `Ocorreu um erro: ${error.message}`;
         } finally {
             askKaizenBtn.disabled = false;
