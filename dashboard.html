@@ -7,277 +7,252 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <script>
+    // As suas configurações do Firebase
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_PROJECT_ID.firebaseapp.com",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_PROJECT_ID.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const dbCollectionPath = "publicTasks"; // coleção simples
+  </script>
+
   <style>
-    :root {
-      --bg-main: #0b1020;
-      --bg-column: #121935;
-      --bg-task: #161e42;
-      --bg-input: rgba(255,255,255,.05);
-      --border-color: rgba(255,255,255,.2);
-      --text-primary: #eaf0ff;
-      --text-secondary: #b9c2e0;
-      --accent-color: #6ee7ff;
-      --accent-text: #000;
-    }
-    body{margin:0;font-family:Inter,sans-serif;background:var(--bg-main);color:var(--text-primary);}
-    .board-header{display:flex;justify-content:space-between;align-items:center;padding:20px;padding-bottom: 0;}
-    .kanban-board{display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:20px;padding:20px;}
-    .kanban-column{background:var(--bg-column);border-radius:14px;padding:15px;display:flex;flex-direction:column;}
-    .kanban-column h2 { margin-top: 0; }
-    .kanban-tasks{flex:1;min-height:200px;padding-top:10px;border-radius:8px;transition: background-color 0.2s ease;}
-    .kanban-tasks.drag-over { background-color: rgba(255,255,255, 0.08); }
-    .kanban-task{background:var(--bg-task);padding:12px;margin-bottom:10px;border-radius:10px;cursor:grab;border-left: 3px solid transparent;}
-    .kanban-task:active { cursor: grabbing; }
-    .kanban-task .actions{margin-top:8px;display:flex;gap:6px;opacity:0.7;}
-    .kanban-task .actions button{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:14px;}
-    .add-task{margin-top:15px;padding-top:15px;border-top:1px dashed var(--border-color);}
-    .add-task input{width:100%;box-sizing: border-box;padding:10px;margin-bottom:8px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:14px;}
-    .add-task button{width: 100%; padding:10px 14px;border:none;border-radius:8px;background:var(--accent-color);color:var(--accent-text);font-weight:600;cursor:pointer;transition: background-color 0.2s ease;}
-    .add-task button:hover { background-color: #a7f5ff; }
-    .kaizen-ia{margin:0 20px 20px 20px;background:var(--bg-task);padding:20px;border-radius:12px;}
-    .kaizen-ia h3{margin-top:0;color:var(--accent-color);}
+    body{margin:0;font-family:Inter,sans-serif;background:#0b1020;color:#eaf0ff;}
+    .board-header{display:flex;justify-content:space-between;align-items:center;margin:20px;}
+    .kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:20px;}
+    .kanban-column{background:#121935;border-radius:14px;padding:15px;display:flex;flex-direction:column;}
+    .kanban-tasks{flex:1;min-height:100px;padding:10px;background:rgba(0,0,0,.05);border-radius:8px;}
+    .kanban-task{background:#161e42;padding:12px;margin-bottom:10px;border-radius:10px;cursor:grab;}
+    .kanban-task .actions{margin-top:8px;display:flex;gap:6px;}
+    .kanban-task .actions button{background:none;border:none;color:#b9c2e0;cursor:pointer;font-size:14px;}
+    .add-task{margin-top:15px;padding-top:15px;border-top:1px dashed rgba(255,255,255,.1);}
+    .add-task input{width:100%;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;}
+    .add-task button{padding:10px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
+    .kaizen-ia{margin:20px;background:#161e42;padding:15px;border-radius:12px;}
+    .kaizen-ia h3{margin-top:0;color:#6ee7ff;}
     .kaizen-ask{margin-top:10px;display:flex;gap:10px;}
-    .kaizen-ask input{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:14px;}
-    .kaizen-ask button{padding:10px 14px;border:none;border-radius:8px;background:var(--accent-color);color:var(--accent-text);font-weight:600;cursor:pointer;}
-    .kaizen-ask button:disabled { background-color: #555; cursor: not-allowed;}
-    #kaizen-answer { margin-top:15px; color:var(--text-secondary); white-space: pre-wrap; background: var(--bg-input); padding: 10px; border-radius: 8px; }
-    .dragging{opacity: .5; transform: rotate(2deg);}
+    .kaizen-ask input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;}
+    .kaizen-ask button{padding:8px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
+    .kaizen-ask button:disabled{background-color:#555; cursor:not-allowed;}
   </style>
 </head>
 <body>
   <div class="board-header">
     <div>
-      <p style="margin:0;font-size:14px;color:var(--text-secondary)">Quadro Público</p>
-      <h1 style="margin:0;">Quadro de Operações</h1>
+      <p style="margin:0;font-size:14px;color:#b9c2e0">Quadro Público</p>
+      <h1>Quadro de Operações</h1>
     </div>
   </div>
 
   <div class="kanban-board" id="kanban-board">
-    <!-- As colunas são preenchidas dinamicamente pelo JavaScript -->
+    <div class="kanban-column">
+      <h2>A Fazer</h2>
+      <div class="kanban-tasks" data-status="todo"></div>
+      <div class="add-task">
+        <input type="text" placeholder="Tarefa..." id="new-task-title-todo">
+        <input type="text" placeholder="Responsável..." id="new-task-responsible-todo">
+        <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-todo">
+        <button onclick="addTask('todo')">Adicionar</button>
+      </div>
+    </div>
+    <div class="kanban-column">
+      <h2>A Executar</h2>
+      <div class="kanban-tasks" data-status="doing"></div>
+      <div class="add-task">
+        <input type="text" placeholder="Tarefa..." id="new-task-title-doing">
+        <input type="text" placeholder="Responsável..." id="new-task-responsible-doing">
+        <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-doing">
+        <button onclick="addTask('doing')">Adicionar</button>
+      </div>
+    </div>
+    <div class="kanban-column">
+      <h2>Feito</h2>
+      <div class="kanban-tasks" data-status="done"></div>
+      <div class="add-task">
+        <input type="text" placeholder="Tarefa..." id="new-task-title-done">
+        <input type="text" placeholder="Responsável..." id="new-task-responsible-done">
+        <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-done">
+        <button onclick="addTask('done')">Adicionar</button>
+      </div>
+    </div>
   </div>
 
   <div class="kaizen-ia">
-    <h3>IA Kaizen recomendações:</h3>
+    <h3>Recomendações da IA Kaizen:</h3>
     <div id="kaizen-suggestions"><p>A carregar recomendações...</p></div>
     <div class="kaizen-ask">
-      <input type="text" id="kaizen-question" placeholder="Pergunte algo à IA sobre as tarefas...">
-      <button id="ask-kaizen-btn">Perguntar</button>
+      <input type="text" id="kaizen-question" placeholder="Pergunte algo à IA...">
+      <button id="ask-kaizen-btn" onclick="askKaizen()">Perguntar</button>
     </div>
-    <div id="kaizen-answer" style="display: none;"></div>
+    <div id="kaizen-answer" style="margin-top:10px;color:#b9c2e0;white-space:pre-wrap;"></div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // --- VARIÁVEIS DE AMBIENTE (INJETADAS AUTOMATICAMENTE) ---
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kanban-app';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    // --- ELEMENTOS DO DOM ---
+  <script>
     const kanbanBoard = document.getElementById('kanban-board');
     const kaizenSuggestions = document.getElementById('kaizen-suggestions');
     const kaizenAnswer = document.getElementById('kaizen-answer');
     const askKaizenBtn = document.getElementById('ask-kaizen-btn');
-    
-    // --- ESTADO DA APLICAÇÃO ---
-    let db, auth;
-    let currentTasks = [];
     let draggedItem = null;
-    const statuses = ['todo', 'doing', 'done'];
-    const statusTitles = { 'todo': 'A Fazer', 'doing': 'Em Execução', 'done': 'Feito' };
+    let currentTasks = [];
 
-    // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
-    function initialize() {
-        if (Object.keys(firebaseConfig).length === 0) {
-            kanbanBoard.innerHTML = "<p>Erro: Configuração do Firebase não encontrada.</p>";
-            return;
-        }
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            buildKanbanColumns();
-            setupEventListeners();
-            setupAuthListener();
-        } catch (error) {
-            console.error("Erro na inicialização do Firebase:", error);
-            kanbanBoard.innerHTML = "<p>Erro ao inicializar a aplicação.</p>";
-        }
-    }
-
-    // --- AUTENTICAÇÃO E DADOS ---
-    function setupAuthListener() {
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                loadTasks();
-            } else {
-                try {
-                    await (initialAuthToken ? signInWithCustomToken(auth, initialAuthToken) : signInAnonymously(auth));
-                } catch (error) { console.error("Falha na autenticação:", error); }
-            }
-        });
-    }
-    
-    function getTasksCollectionRef() {
-        // As regras de segurança do Firestore devem permitir escrita/leitura pública neste caminho
-        return collection(db, `artifacts/${appId}/public/data/tasks`);
-    }
-
-    function loadTasks() {
-        const q = query(getTasksCollectionRef(), orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
-            currentTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderTasks(currentTasks);
-        }, (error) => console.error("Erro ao carregar tarefas:", error));
-    }
-
-    // --- RENDERIZAÇÃO E UI ---
-    function buildKanbanColumns() {
-        statuses.forEach(status => {
-            const columnEl = document.createElement('div');
-            columnEl.classList.add('kanban-column');
-            columnEl.innerHTML = `
-                <h2>${statusTitles[status]}</h2>
-                <div class="kanban-tasks" data-status="${status}"></div>
-                <div class="add-task">
-                    <input type="text" placeholder="Nova tarefa..." id="new-task-title-${status}">
-                    <input type="text" placeholder="Responsável..." id="new-task-responsible-${status}">
-                    <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-${status}">
-                    <button data-action="add-task" data-status="${status}">Adicionar Tarefa</button>
-                </div>`;
-            kanbanBoard.appendChild(columnEl);
-        });
-    }
-    
     function renderTasks(tasks) {
-        document.querySelectorAll('.kanban-tasks').forEach(col => col.innerHTML = '');
-        tasks.forEach(task => {
-            const column = document.querySelector(`.kanban-tasks[data-status="${task.status}"]`);
-            if (column) {
-                const el = document.createElement('div');
-                el.classList.add('kanban-task');
-                el.setAttribute('data-id', task.id);
-                el.setAttribute('draggable', 'true');
-                el.innerHTML = `
-                    <strong>${task.title}</strong><br>
-                    <small>${task.responsible || 'Sem responsável'} - ${task.deadline || 'Sem prazo'}</small>
-                    <div class="actions">
-                        <button data-action="edit-task" data-id="${task.id}" data-title="${task.title}">✏️</button>
-                        <button data-action="delete-task" data-id="${task.id}">🗑️</button>
-                    </div>`;
-                column.appendChild(el);
-            }
-        });
-        updateKaizenSuggestions(tasks);
+      currentTasks = tasks;
+      const columns = {
+        todo: document.querySelector('.kanban-tasks[data-status="todo"]'),
+        doing: document.querySelector('.kanban-tasks[data-status="doing"]'),
+        done: document.querySelector('.kanban-tasks[data-status="done"]')
+      };
+      Object.values(columns).forEach(col => col.innerHTML = '');
+
+      tasks.forEach(task => {
+        const el = document.createElement('div');
+        el.classList.add('kanban-task');
+        el.setAttribute('data-id', task.id);
+        el.setAttribute('data-status', task.status);
+        el.setAttribute('draggable', 'true');
+        el.innerHTML = `
+          <strong>${task.title}</strong><br>
+          <small>${task.responsible || 'Sem responsável'} - ${task.deadline || 'Sem prazo'}</small>
+          <div class="actions">
+            <button onclick="editTask('${task.id}')">✏️</button>
+            <button class="delete" onclick="deleteTask('${task.id}')">🗑️</button>
+          </div>`;
+        if(columns[task.status]) columns[task.status].appendChild(el);
+      });
+
+      updateKaizenSuggestions(tasks);
     }
 
-    // --- GESTÃO DE EVENTOS ---
-    function setupEventListeners() {
-        kanbanBoard.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            const { action, status, id, title } = button.dataset;
-
-            if (action === 'add-task') addTask(status);
-            if (action === 'edit-task') editTask(id, title);
-            if (action === 'delete-task') deleteTask(id);
-        });
-        
-        askKaizenBtn.addEventListener('click', askKaizen);
-
-        kanbanBoard.addEventListener('dragstart', (e) => {
-            if (e.target.classList.contains('kanban-task')) {
-                draggedItem = e.target;
-                setTimeout(() => draggedItem.classList.add('dragging'), 0);
-            }
-        });
-        kanbanBoard.addEventListener('dragend', () => {
-            if (draggedItem) {
-                draggedItem.classList.remove('dragging');
-                draggedItem = null;
-                document.querySelectorAll('.kanban-tasks').forEach(c => c.classList.remove('drag-over'));
-            }
-        });
-        kanbanBoard.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            const column = e.target.closest('.kanban-tasks');
-            if (column) {
-                document.querySelectorAll('.kanban-tasks').forEach(c => c.classList.remove('drag-over'));
-                column.classList.add('drag-over');
-            }
-        });
-        kanbanBoard.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            const targetColumn = e.target.closest('.kanban-tasks');
-            if (targetColumn && draggedItem) {
-                targetColumn.appendChild(draggedItem);
-                const newStatus = targetColumn.getAttribute('data-status');
-                const taskId = draggedItem.getAttribute('data-id');
-                await updateDoc(doc(getTasksCollectionRef(), taskId), { status: newStatus });
-            }
-            document.querySelectorAll('.kanban-tasks').forEach(c => c.classList.remove('drag-over'));
-        });
+    function loadTasks(){
+      db.collection(dbCollectionPath).onSnapshot(snap=>{
+        const liveTasks = [];
+        snap.forEach(doc=>liveTasks.push({id:doc.id,...doc.data()}));
+        renderTasks(liveTasks);
+      });
     }
 
-    // --- AÇÕES DO UTILIZADOR ---
-    async function addTask(status) {
-        const titleInput = document.getElementById(`new-task-title-${status}`);
-        const title = titleInput.value.trim();
-        if (!title) return;
+    window.addTask = async function(status){
+      const title = document.getElementById(`new-task-title-${status}`).value.trim();
+      const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
+      const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
 
-        const responsibleInput = document.getElementById(`new-task-responsible-${status}`);
-        const deadlineInput = document.getElementById(`new-task-deadline-${status}`);
-        
-        await addDoc(getTasksCollectionRef(), {
-            title,
-            responsible: responsibleInput.value.trim() || null,
-            deadline: deadlineInput.value.trim() || null,
-            status,
-            createdAt: new Date().toISOString()
-        });
-        
-        titleInput.value = '';
-        responsibleInput.value = '';
-        deadlineInput.value = '';
+      if(!title) return alert('O título é obrigatório');
+      const task = {title, responsible: responsible||null, deadline: deadline||null, status, createdAt:new Date().toISOString()};
+      await db.collection(dbCollectionPath).add(task);
+      document.getElementById(`new-task-title-${status}`).value = '';
+      document.getElementById(`new-task-responsible-${status}`).value = '';
+      document.getElementById(`new-task-deadline-${status}`).value = '';
     }
 
-    async function editTask(id, currentTitle) {
-        const newTitle = prompt('Editar título da tarefa:', currentTitle);
-        if (newTitle && newTitle.trim() && newTitle.trim() !== currentTitle) {
-            await updateDoc(doc(getTasksCollectionRef(), id), { title: newTitle.trim() });
+    window.editTask = async function(id){
+      const newTitle = prompt('Novo título da tarefa:');
+      if(newTitle && newTitle.trim() !== ''){
+        await db.collection(dbCollectionPath).doc(id).update({title:newTitle.trim()});
+      }
+    }
+
+    window.deleteTask = async function(id){
+      if(confirm('Deseja realmente apagar esta tarefa?')){
+        await db.collection(dbCollectionPath).doc(id).delete();
+      }
+    }
+
+    kanbanBoard.addEventListener('dragstart', (e) => {
+      if(e.target.classList.contains('kanban-task')){
+        draggedItem = e.target;
+        setTimeout(()=>draggedItem.style.opacity = '0.5',0);
+      }
+    });
+
+    kanbanBoard.addEventListener('dragend', () => {
+      if(draggedItem){
+        setTimeout(()=>draggedItem.style.opacity = '1',0);
+        draggedItem = null;
+      }
+    });
+
+    kanbanBoard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    kanbanBoard.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const targetColumn = e.target.closest('.kanban-tasks');
+      if(targetColumn && draggedItem){
+        const newStatus = targetColumn.getAttribute('data-status');
+        const taskId = draggedItem.getAttribute('data-id');
+        const currentStatus = draggedItem.getAttribute('data-status');
+
+        targetColumn.appendChild(draggedItem); // Move o elemento visualmente
+        draggedItem.setAttribute('data-status', newStatus);
+
+        if(newStatus !== currentStatus){
+          let updateData = {status:newStatus};
+          if(newStatus === 'done'){
+             updateData.completedAt = new Date().toISOString();
+          }
+          await db.collection(dbCollectionPath).doc(taskId).update(updateData);
         }
+      }
+    });
+
+    function updateKaizenSuggestions(tasks){
+      kaizenSuggestions.innerHTML = '';
+      const todo = tasks.filter(t=>t.status==='todo');
+      const doing = tasks.filter(t=>t.status==='doing');
+      const done = tasks.filter(t=>t.status==='done');
+
+      if(todo.some(t=>!t.responsible)){
+        kaizenSuggestions.innerHTML += `<p>• Há tarefas sem responsável. Atribua-as para evitar atrasos.</p>`;
+      }
+      const today = new Date();today.setHours(0,0,0,0);
+      const overdue = todo.filter(t=> {
+          if (!t.deadline || !t.deadline.includes('/')) return false;
+          try {
+            const [day, month, year] = t.deadline.split('/');
+            return new Date(`${year}-${month}-${day}`) < today;
+          } catch { return false; }
+      });
+      if(overdue.length){
+        kaizenSuggestions.innerHTML += `<p><strong>• Atenção:</strong> ${overdue.length} tarefa(s) estão atrasadas!</p>`;
+      }
+      if(doing.length>3 && doing.length>todo.length){
+        kaizenSuggestions.innerHTML += `<p>• Há muitos itens em andamento. Considere uma reunião para definir prioridades.</p>`;
+      }
+      if(!kaizenSuggestions.innerHTML){
+        kaizenSuggestions.innerHTML = '<p>Nenhuma sugestão de momento. Continue assim!</p>';
+      }
     }
 
-    async function deleteTask(id) {
-        if (confirm('Tem a certeza de que quer apagar esta tarefa?')) {
-            await deleteDoc(doc(getTasksCollectionRef(), id));
-        }
-    }
-
-    // --- LÓGICA DA IA (VERSÃO ROBUSTA) ---
-    function updateKaizenSuggestions(tasks) {
-      // ... (função de sugestões automáticas)
-    }
-
-    async function askKaizen() {
-        const questionInput = document.getElementById('kaizen-question');
-        const question = questionInput.value.trim();
+    // --- SECÇÃO DA IA ATUALIZADA ---
+    window.askKaizen = async function() {
+        const question = document.getElementById('kaizen-question').value.trim();
         if (!question) return;
 
-        kaizenAnswer.style.display = 'block';
-        kaizenAnswer.textContent = 'A pensar... A IA está a analisar os seus dados.';
+        kaizenAnswer.textContent = 'A pensar...';
         askKaizenBtn.disabled = true;
 
-        console.log("A enviar para a IA:", { question, tasks: currentTasks });
-
-        const apiKey = ""; 
+        const apiKey = ""; // A API Key é deixada em branco, pois será injetada pelo ambiente
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-        const systemPrompt = `Você é Kaizen, uma IA assistente especialista em otimização de fluxos de trabalho Kanban. Responde sempre em português de Portugal. Seja prestável, objetivo e analise os dados fornecidos para dar uma resposta curta e direta à pergunta do utilizador.`;
-        const userQuery = `Analisando este array de tarefas JSON que representa o meu quadro Kanban:\n${JSON.stringify(currentTasks)}\n\nResponda à seguinte pergunta: "${question}"`;
+        // Define o comportamento e o contexto para a IA
+        const systemPrompt = `Você é Kaizen, uma IA assistente especialista em otimização de fluxos de trabalho Kanban. Responda sempre em português. A sua personalidade é prestável e focada em dados. Analise o estado atual do quadro Kanban e responda à pergunta do utilizador de forma concisa.`;
+        
+        const userQuery = `Baseado neste array de tarefas em formato JSON, que representa o meu quadro Kanban:
+        ${JSON.stringify(currentTasks, null, 2)}
+        
+        Responda à seguinte pergunta: "${question}"`;
 
         const payload = {
             systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -290,33 +265,29 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            
-            const result = await response.json();
-            console.log("Resposta recebida da API:", result);
 
             if (!response.ok) {
-                const errorMsg = result?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
-                throw new Error(errorMsg);
+                const errorData = await response.json();
+                throw new Error(errorData.error.message || `Erro HTTP ${response.status}`);
             }
 
+            const result = await response.json();
             const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
             if (text) {
                 kaizenAnswer.textContent = text;
             } else {
-                const finishReason = result.candidates?.[0]?.finishReason;
-                throw new Error(`A IA não retornou texto. Motivo: ${finishReason || 'Desconhecido'}. Verifique a consola para mais detalhes.`);
+                kaizenAnswer.textContent = "Desculpe, não consegui gerar uma resposta. Tente novamente.";
             }
         } catch (error) {
-            console.error("Falha detalhada ao contactar a IA Kaizen:", error);
-            kaizenAnswer.textContent = `Ocorreu um erro: ${error.message}. Por favor, tente novamente.`;
+            console.error("Erro ao contactar a IA Kaizen:", error);
+            kaizenAnswer.textContent = `Ocorreu um erro: ${error.message}`;
         } finally {
             askKaizenBtn.disabled = false;
         }
     }
 
-    // --- INICIA A APLICAÇÃO ---
-    initialize();
+    loadTasks();
   </script>
 </body>
 </html>
-
