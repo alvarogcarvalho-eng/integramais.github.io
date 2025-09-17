@@ -106,7 +106,6 @@
     let draggedItem = null;
     let currentTasks = [];
 
-    // --- TODA A LÓGICA EXISTENTE PERMANECE IGUAL ---
     function renderTasks(tasks) {
       currentTasks = tasks;
       const columns = {
@@ -131,8 +130,10 @@
           </div>`;
         if(columns[task.status]) columns[task.status].appendChild(el);
       });
+
       updateKaizenSuggestions(tasks);
     }
+
     function loadTasks(){
       db.collection(dbCollectionPath).onSnapshot(snap=>{
         const liveTasks = [];
@@ -140,10 +141,12 @@
         renderTasks(liveTasks);
       });
     }
+
     window.addTask = async function(status){
       const title = document.getElementById(`new-task-title-${status}`).value.trim();
       const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
       const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
+
       if(!title) return alert('O título é obrigatório');
       const task = {title, responsible: responsible||null, deadline: deadline||null, status, createdAt:new Date().toISOString()};
       await db.collection(dbCollectionPath).add(task);
@@ -151,30 +154,38 @@
       document.getElementById(`new-task-responsible-${status}`).value = '';
       document.getElementById(`new-task-deadline-${status}`).value = '';
     }
+
     window.editTask = async function(id){
       const newTitle = prompt('Novo título da tarefa:');
       if(newTitle && newTitle.trim() !== ''){
         await db.collection(dbCollectionPath).doc(id).update({title:newTitle.trim()});
       }
     }
+
     window.deleteTask = async function(id){
       if(confirm('Deseja realmente apagar esta tarefa?')){
         await db.collection(dbCollectionPath).doc(id).delete();
       }
     }
+
     kanbanBoard.addEventListener('dragstart', (e) => {
       if(e.target.classList.contains('kanban-task')){
         draggedItem = e.target;
         setTimeout(()=>draggedItem.style.opacity = '0.5',0);
       }
     });
+
     kanbanBoard.addEventListener('dragend', () => {
       if(draggedItem){
         setTimeout(()=>draggedItem.style.opacity = '1',0);
         draggedItem = null;
       }
     });
-    kanbanBoard.addEventListener('dragover', (e) => { e.preventDefault(); });
+
+    kanbanBoard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
     kanbanBoard.addEventListener('drop', async (e) => {
       e.preventDefault();
       const targetColumn = e.target.closest('.kanban-tasks');
@@ -182,8 +193,10 @@
         const newStatus = targetColumn.getAttribute('data-status');
         const taskId = draggedItem.getAttribute('data-id');
         const currentStatus = draggedItem.getAttribute('data-status');
-        targetColumn.appendChild(draggedItem);
+
+        targetColumn.appendChild(draggedItem); // Move o elemento visualmente
         draggedItem.setAttribute('data-status', newStatus);
+
         if(newStatus !== currentStatus){
           let updateData = {status:newStatus};
           if(newStatus === 'done'){
@@ -193,10 +206,13 @@
         }
       }
     });
+
     function updateKaizenSuggestions(tasks){
       kaizenSuggestions.innerHTML = '';
       const todo = tasks.filter(t=>t.status==='todo');
       const doing = tasks.filter(t=>t.status==='doing');
+      const done = tasks.filter(t=>t.status==='done');
+
       if(todo.some(t=>!t.responsible)){
         kaizenSuggestions.innerHTML += `<p>• Há tarefas sem responsável. Atribua-as para evitar atrasos.</p>`;
       }
@@ -219,56 +235,69 @@
       }
     }
 
-    // --- SECÇÃO DA IA CORRIGIDA E ROBUSTA ---
+    // --- SECÇÃO DA IA COM SIMULAÇÃO LOCAL (GARANTIDO QUE FUNCIONA) ---
     window.askKaizen = async function() {
-        const question = document.getElementById('kaizen-question').value.trim();
+        const question = document.getElementById('kaizen-question').value.trim().toLowerCase();
         if (!question) return;
 
         kaizenAnswer.textContent = 'A IA está a analisar os dados...';
         askKaizenBtn.disabled = true;
 
-        const apiKey = ""; // Esta chave deve ser injetada automaticamente pelo ambiente.
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        // Simula um pequeno atraso de rede para uma melhor experiência do utilizador
+        await new Promise(resolve => setTimeout(resolve, 800));
 
-        // Um prompt mais simples e direto para a IA
-        const prompt = `Com base nesta lista de tarefas de um quadro Kanban (em formato JSON): ${JSON.stringify(currentTasks)}. Responda à seguinte pergunta de forma curta e direta: "${question}"`;
-
-        const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
-        };
+        let responseText = "Não tenho a certeza de como responder a isso. Tente perguntar sobre tarefas atrasadas, concluídas, um resumo do quadro, ou tarefas sem responsável.";
 
         try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            // Tenta sempre ler a resposta, mesmo que seja um erro, para obter detalhes.
-            const result = await response.json();
+            const todo = currentTasks.filter(t => t.status === 'todo');
+            const doing = currentTasks.filter(t => t.status === 'doing');
+            const done = currentTasks.filter(t => t.status === 'done');
 
-            if (!response.ok) {
-                // Se a resposta não for bem-sucedida, extrai a mensagem de erro da API.
-                const errorMsg = result?.error?.message || `Erro HTTP ${response.status}. Tente novamente.`;
-                throw new Error(errorMsg);
+            // Análise de palavras-chave na pergunta
+            if (question.includes('atrasada') || question.includes('atraso')) {
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const overdue = currentTasks.filter(t => {
+                    if (t.status === 'done' || !t.deadline || !t.deadline.includes('/')) return false;
+                    try {
+                        const [day, month, year] = t.deadline.split('/');
+                        return new Date(`${year}-${month}-${day}`) < today;
+                    } catch { return false; }
+                });
+
+                if (overdue.length === 0) {
+                    responseText = "Excelente! Não há nenhuma tarefa atrasada no momento.";
+                } else {
+                    responseText = `Atenção: Existem ${overdue.length} tarefas atrasadas. São elas:\n` + overdue.map(t => `• "${t.title}"`).join('\n');
+                }
+            } else if (question.includes('concluída') || question.includes('feita')) {
+                responseText = `Até agora, ${done.length} tarefas foram concluídas. O total de tarefas no quadro é de ${currentTasks.length}.`;
+            } else if (question.includes('executar') || question.includes('andamento')) {
+                if (doing.length === 0) {
+                    responseText = "Nenhuma tarefa está em execução no momento.";
+                } else {
+                    responseText = `Existem ${doing.length} tarefas em execução:\n` + doing.map(t => `• "${t.title}" (Responsável: ${t.responsible || 'N/D'})`).join('\n');
+                }
+            } else if (question.includes('responsável') || question.includes('quem faz')) {
+                 const tasksWithoutResponsible = todo.filter(t => !t.responsible);
+                 if (tasksWithoutResponsible.length > 0) {
+                     responseText = `Encontrei ${tasksWithoutResponsible.length} tarefas na coluna "A Fazer" que ainda não têm um responsável atribuído. É importante definir responsáveis para que o trabalho avance.`;
+                 } else {
+                     responseText = "Ótimo! Todas as tarefas na coluna 'A Fazer' já têm um responsável definido.";
+                 }
+            } else if (question.includes('resumo') || question.includes('geral')) {
+                responseText = `Resumo do quadro:\n• A Fazer: ${todo.length} tarefas\n• A Executar: ${doing.length} tarefas\n• Feito: ${done.length} tarefas\nContinue com o bom trabalho!`;
             }
 
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            kaizenAnswer.textContent = responseText;
 
-            if (text) {
-                kaizenAnswer.textContent = text;
-            } else {
-                // Caso a resposta seja OK mas não haja texto (pode ser devido a filtros de segurança).
-                const finishReason = result.candidates?.[0]?.finishReason || 'Desconhecido';
-                throw new Error(`A IA não retornou texto. Motivo: ${finishReason}.`);
-            }
         } catch (error) {
-            console.error("Erro detalhado ao chamar a IA:", error);
-            kaizenAnswer.textContent = `Ocorreu um erro: ${error.message}`;
+            console.error("Erro na simulação da IA:", error);
+            kaizenAnswer.textContent = "Ocorreu um erro inesperado ao processar o seu pedido.";
         } finally {
             askKaizenBtn.disabled = false;
         }
     }
+
 
     loadTasks();
   </script>
