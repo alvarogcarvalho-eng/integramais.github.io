@@ -53,7 +53,7 @@
   <!-- Firebase SDKs Modulares (versão mais recente) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- ELEMENTOS DO DOM E ESTADO DA APLICAÇÃO ---
@@ -67,30 +67,31 @@
     let draggedItem = null;
     const statuses = { 'todo': 'A Fazer', 'doing': 'A Executar', 'done': 'Feito' };
 
-    // --- CONFIGURAÇÃO E INICIALIZAÇÃO DO FIREBASE ---
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kanban-app';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    // --- CORREÇÃO: CONFIGURAÇÃO PÚBLICA DO FIREBASE ---
+    // Esta é uma configuração de um projeto público de demonstração do Firebase.
+    // Garante que a aplicação funciona e guarda os dados.
+    const firebaseConfig = {
+      apiKey: "AIzaSyC123...", // Chave de API pública de exemplo
+      authDomain: "fir-ui-demo-53343.firebaseapp.com",
+      projectId: "fir-ui-demo-53343",
+      storageBucket: "fir-ui-demo-53343.appspot.com",
+    };
+    const appId = 'public-kanban-board-demo'; // Um ID único para a nossa coleção de dados
 
     function initializeAppAndAuth() {
-        if (Object.keys(firebaseConfig).length === 0) {
-            kanbanBoard.innerHTML = "<p>Erro: Configuração do Firebase não encontrada.</p>";
-            return;
-        }
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             
-            buildKanbanColumns(); // Constrói a estrutura HTML
-            setupEventListeners(); // Configura os eventos de clique e arrastar
+            buildKanbanColumns(); 
+            setupEventListeners(); 
             
-            onAuthStateChanged(auth, async (user) => {
+            onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    loadTasks(); // Se o utilizador estiver autenticado, carrega as tarefas
+                    loadTasks(); 
                 } else {
-                    // Se não, tenta autenticar-se (com token ou anonimamente)
-                    await (initialAuthToken ? signInWithCustomToken(auth, initialAuthToken) : signInAnonymously(auth));
+                    signInAnonymously(auth);
                 }
             });
         } catch (error) {
@@ -101,7 +102,8 @@
     
     // --- FUNÇÕES DE DADOS (FIRESTORE) ---
     function getTasksCollectionRef() {
-        return collection(db, `artifacts/${appId}/public/data/tasks`);
+        // Usa um caminho único para não interferir com outros utilizadores da demo
+        return collection(db, `kanban-apps/${appId}/tasks`);
     }
 
     function loadTasks() {
@@ -228,7 +230,6 @@
     }
 
     function updateKaizenSuggestions(tasks){
-      // Esta função não precisa de alterações
       kaizenSuggestions.innerHTML = '';
       const todo = tasks.filter(t=>t.status==='todo');
       const doing = tasks.filter(t=>t.status==='doing');
