@@ -13,7 +13,6 @@
 
   <script>
     // CONFIGURAÇÕES DO FIREBASE (substitua pelos dados do seu projeto)
-    // Para obter essas chaves, vá para as configurações do seu projeto no console do Firebase.
     const firebaseConfig = {
       apiKey: "SUA_API_KEY",
       authDomain: "SEU_PROJECT_ID.firebaseapp.com",
@@ -38,26 +37,20 @@
     .kanban-task .actions{margin-top:8px;display:flex;gap:6px;}
     .kanban-task .actions button{background:none;border:none;color:#b9c2e0;cursor:pointer;font-size:14px;}
     .add-task{margin-top:15px;padding-top:15px;border-top:1px dashed rgba(255,255,255,.1);}
-    .add-task input{width:100%;box-sizing: border-box;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;}
+    .add-task input{width:100%;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;}
     .add-task button{padding:10px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
     .kaizen-ia{margin:20px;background:#161e42;padding:15px;border-radius:12px;}
     .kaizen-ia h3{margin-top:0;color:#6ee7ff;}
     .kaizen-ask{margin-top:10px;display:flex;gap:10px;}
     .kaizen-ask input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;}
     .kaizen-ask button{padding:8px 14px;border:none;border-radius:8px;background:#6ee7ff;color:#000;font-weight:600;cursor:pointer;}
-    .dragging{opacity: .5;}
-    @media (max-width: 768px) {
-      .kanban-board {
-        grid-template-columns: 1fr;
-      }
-    }
   </style>
 </head>
 <body>
   <div class="board-header">
     <div>
       <p style="margin:0;font-size:14px;color:#b9c2e0">Quadro Público</p>
-      <h1 style="margin:0;">Quadro de Operações</h1>
+      <h1>Quadro de Operações</h1>
     </div>
   </div>
 
@@ -101,7 +94,7 @@
       <input type="text" id="kaizen-question" placeholder="Pergunte algo para a IA...">
       <button onclick="askKaizen()">Perguntar</button>
     </div>
-    <div id="kaizen-answer" style="margin-top:10px;color:#b9c2e0;white-space: pre-wrap;"></div>
+    <div id="kaizen-answer" style="margin-top:10px;color:#b9c2e0;"></div>
   </div>
 
   <script>
@@ -152,10 +145,7 @@
       const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
       const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
 
-      if(!title) {
-          alert('O título é obrigatório');
-          return;
-      }
+      if(!title) return alert('O título é obrigatório');
       const task = {title, responsible: responsible||null, deadline: deadline||null, status, createdAt:new Date().toISOString()};
       await db.collection(dbCollectionPath).add(task);
       document.getElementById(`new-task-title-${status}`).value = '';
@@ -177,128 +167,4 @@
     }
 
     kanbanBoard.addEventListener('dragstart', (e) => {
-      if(e.target.classList.contains('kanban-task')){
-        draggedItem = e.target;
-        setTimeout(()=>draggedItem.classList.add('dragging'),0);
-      }
-    });
-
-    kanbanBoard.addEventListener('dragend', () => {
-      if(draggedItem){
-        draggedItem.classList.remove('dragging');
-        draggedItem = null;
-      }
-    });
-
-    kanbanBoard.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      const target = e.target.closest('.kanban-tasks');
-      if(target && draggedItem){
-        // Lógica para adicionar feedback visual ao passar por cima
-      }
-    });
-
-    kanbanBoard.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      const targetColumn = e.target.closest('.kanban-tasks');
-      if(targetColumn && draggedItem){
-        targetColumn.appendChild(draggedItem); // Mova o elemento visualmente primeiro
-        const newStatus = targetColumn.getAttribute('data-status');
-        const taskId = draggedItem.getAttribute('data-id');
-        const currentStatus = draggedItem.getAttribute('data-status');
-
-        if(newStatus !== currentStatus){
-          let updateData = {status:newStatus};
-          if(newStatus === 'done'){
-            updateData.deadline = `Concluído: ${new Date().toLocaleDateString('pt-BR')}`;
-          }
-          await db.collection(dbCollectionPath).doc(taskId).update(updateData);
-        }
-      }
-    });
-
-    function updateKaizenSuggestions(tasks){
-      kaizenSuggestions.innerHTML = '';
-      const todo = tasks.filter(t=>t.status==='todo');
-      const doing = tasks.filter(t=>t.status==='doing');
-      const done = tasks.filter(t=>t.status==='done');
-
-      if(todo.some(t=>!t.responsible)){
-        kaizenSuggestions.innerHTML += `<p>• Há tarefas sem responsável. Atribua para evitar atrasos.</p>`;
-      }
-      const today = new Date();today.setHours(0,0,0,0);
-      const overdue = todo.filter(t=>t.deadline && t.deadline.includes('/') && new Date(t.deadline.split('/').reverse().join('-'))<today);
-      if(overdue.length){
-        kaizenSuggestions.innerHTML += `<p><strong>• Atenção:</strong> ${overdue.length} tarefa(s) estão atrasadas!</p>`;
-      }
-      if(doing.length>3 && doing.length>todo.length){
-        kaizenSuggestions.innerHTML += `<p>• Há muitos itens em andamento. Considere uma reunião para priorizar.</p>`;
-      }
-      if(done.length){
-        kaizenSuggestions.innerHTML += `<p>• Parabéns! ${done.length} tarefa(s) concluídas 🎉</p>`;
-      }
-      if(!kaizenSuggestions.innerHTML){
-        kaizenSuggestions.innerHTML = '<p>Nenhuma sugestão no momento. Continue assim!</p>';
-      }
-    }
-
-    // --- SEÇÃO DA IA ATUALIZADA ---
-    window.askKaizen = async function(){
-      const question = document.getElementById('kaizen-question').value.trim();
-      if(!question) return;
-
-      kaizenAnswer.textContent = 'Analisando o quadro e pensando...';
-      document.querySelector('.kaizen-ask button').disabled = true;
-
-      const apiKey = ""; // A chave da API será injetada pelo ambiente de execução.
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-      const systemPrompt = "Você é Kaizen, uma IA especialista em Kanban e otimização de processos. Sua personalidade é direta, prestativa e focada em dados. Responda em português brasileiro.";
-
-      // Fornece o contexto completo do quadro Kanban para a IA
-      const userQuery = `Analisando o seguinte quadro Kanban (em formato JSON):
-${JSON.stringify(currentTasks, null, 2)}
-
-Responda à seguinte pergunta do usuário de forma concisa e útil: "${question}"
-`;
-
-      const payload = {
-        systemInstruction: {
-            parts: [{ text: systemPrompt }]
-        },
-        contents: [{
-          parts: [{ text: userQuery }]
-        }],
-      };
-
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            throw new Error(`Erro na API: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        const candidate = result.candidates?.[0];
-
-        if (candidate && candidate.content?.parts?.[0]?.text) {
-          kaizenAnswer.textContent = candidate.content.parts[0].text;
-        } else {
-          throw new Error("Não foi possível obter uma resposta da IA.");
-        }
-      } catch (error) {
-        console.error("Erro ao chamar a IA Kaizen:", error);
-        kaizenAnswer.textContent = "Desculpe, não consegui processar sua pergunta. Tente novamente.";
-      } finally {
-        document.querySelector('.kaizen-ask button').disabled = false;
-      }
-    }
-
-    loadTasks();
-  </script>
-</body>
-</html>
+      if(e.target.classList.c
