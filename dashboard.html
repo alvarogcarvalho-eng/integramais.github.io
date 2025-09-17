@@ -61,23 +61,20 @@
     <div id="kaizen-suggestions"><p>Carregando recomendações...</p></div>
     <div class="kaizen-ask">
       <input type="text" id="kaizen-question" placeholder="Pergunte algo para a IA sobre as tarefas...">
-      <button id="ask-kaizen-btn" onclick="askKaizen()">Perguntar</button>
+      <button id="ask-kaizen-btn">Perguntar</button>
     </div>
     <div id="kaizen-answer" style="display: none;"></div>
   </div>
 
   <script type="module">
-    // --- MÓDULOS FIREBASE (VERSÃO MODERNA) ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- VARIÁVEIS DE AMBIENTE (INJETADAS AUTOMATICAMENTE) ---
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-kanban-app';
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    // --- ELEMENTOS DO DOM ---
     const kanbanBoard = document.getElementById('kanban-board');
     const kaizenSuggestions = document.getElementById('kaizen-suggestions');
     const kaizenAnswer = document.getElementById('kaizen-answer');
@@ -89,33 +86,31 @@
     const statuses = ['todo', 'doing', 'done'];
     const statusTitles = { 'todo': 'A Fazer', 'doing': 'Fazendo', 'done': 'Feito' };
 
-    // --- INICIALIZAÇÃO ---
     function initialize() {
         if (Object.keys(firebaseConfig).length === 0) {
-            console.error("Configuração do Firebase não encontrada. O app não funcionará.");
-            kanbanBoard.innerHTML = "<p>Erro na configuração. Não foi possível carregar o quadro.</p>";
+            kanbanBoard.innerHTML = "<p>Erro: Configuração do Firebase não encontrada.</p>";
             return;
         }
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        setupAuthListener();
-        buildKanbanColumns();
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setupEventListeners();
+            setupAuthListener();
+            buildKanbanColumns();
+        } catch (error) {
+            console.error("Erro na inicialização do Firebase:", error);
+            kanbanBoard.innerHTML = "<p>Erro ao inicializar a aplicação.</p>";
+        }
     }
 
     function setupAuthListener() {
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Usuário autenticado, carregar tarefas
                 loadTasks();
             } else {
-                // Tentar autenticar
                 try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    await (initialAuthToken ? signInWithCustomToken(auth, initialAuthToken) : signInAnonymously(auth));
                 } catch (error) {
                     console.error("Falha na autenticação:", error);
                 }
@@ -134,35 +129,28 @@
                     <input type="text" placeholder="Nova tarefa..." id="new-task-title-${status}">
                     <input type="text" placeholder="Responsável..." id="new-task-responsible-${status}">
                     <input type="text" placeholder="Prazo (DD/MM/AAAA)..." id="new-task-deadline-${status}">
-                    <button onclick="window.addTask('${status}')">Adicionar Tarefa</button>
+                    <button data-action="add-task" data-status="${status}">Adicionar Tarefa</button>
                 </div>`;
             kanbanBoard.appendChild(columnEl);
         });
     }
 
-    // --- LÓGICA DO KANBAN ---
     function getTasksCollectionRef() {
-        // Usa um caminho que isola os dados por 'appId' para que vários quadros não se misturem
         return collection(db, `artifacts/${appId}/public/data/tasks`);
     }
 
     function loadTasks() {
-        const tasksCollection = getTasksCollectionRef();
-        // Ordena por data de criação para manter uma ordem consistente
-        const q = query(tasksCollection, orderBy("createdAt", "desc"));
-
+        const q = query(getTasksCollectionRef(), orderBy("createdAt", "desc"));
         onSnapshot(q, (snapshot) => {
-            const tasks = [];
-            snapshot.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
-            currentTasks = tasks;
-            renderTasks(tasks);
+            currentTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderTasks(currentTasks);
+        }, (error) => {
+            console.error("Erro ao carregar tarefas:", error);
         });
     }
 
     function renderTasks(tasks) {
-        // Limpa todas as colunas primeiro
         document.querySelectorAll('.kanban-tasks').forEach(col => col.innerHTML = '');
-
         tasks.forEach(task => {
             const column = document.querySelector(`.kanban-tasks[data-status="${task.status}"]`);
             if (column) {
@@ -174,100 +162,111 @@
                     <strong>${task.title}</strong><br>
                     <small>${task.responsible || 'Sem responsável'} - ${task.deadline || 'Sem prazo'}</small>
                     <div class="actions">
-                        <button onclick="window.editTask('${task.id}', '${task.title}')">✏️</button>
-                        <button onclick="window.deleteTask('${task.id}')">🗑️</button>
+                        <button data-action="edit-task" data-id="${task.id}" data-title="${task.title}">✏️</button>
+                        <button data-action="delete-task" data-id="${task.id}">🗑️</button>
                     </div>`;
                 column.appendChild(el);
             }
         });
         updateKaizenSuggestions(tasks);
     }
+    
+    // --- LÓGICA DE EVENTOS CENTRALIZADA ---
+    function setupEventListeners() {
+        // Eventos para adicionar, editar, apagar tarefas
+        kanbanBoard.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (!button) return;
+            const { action, status, id, title } = button.dataset;
 
-    window.addTask = async function(status) {
+            if (action === 'add-task') addTask(status);
+            if (action === 'edit-task') editTask(id, title);
+            if (action === 'delete-task') deleteTask(id);
+        });
+        
+        // Evento para o botão da IA
+        askKaizenBtn.addEventListener('click', askKaizen);
+
+        // Eventos de arrastar e soltar
+        kanbanBoard.addEventListener('dragstart', handleDragStart);
+        kanbanBoard.addEventListener('dragend', handleDragEnd);
+        kanbanBoard.addEventListener('dragover', handleDragOver);
+        kanbanBoard.addEventListener('dragleave', handleDragLeave);
+        kanbanBoard.addEventListener('drop', handleDrop);
+    }
+
+    async function addTask(status) {
         const title = document.getElementById(`new-task-title-${status}`).value.trim();
-        if (!title) return; // Não faz nada se o título estiver vazio
-
+        if (!title) return;
         const responsible = document.getElementById(`new-task-responsible-${status}`).value.trim();
         const deadline = document.getElementById(`new-task-deadline-${status}`).value.trim();
         
-        const task = {
-            title,
-            responsible: responsible || null,
-            deadline: deadline || null,
-            status,
+        await addDoc(getTasksCollectionRef(), {
+            title, responsible: responsible || null, deadline: deadline || null, status,
             createdAt: new Date().toISOString()
-        };
-
-        await addDoc(getTasksCollectionRef(), task);
-
+        });
+        
         document.getElementById(`new-task-title-${status}`).value = '';
         document.getElementById(`new-task-responsible-${status}`).value = '';
         document.getElementById(`new-task-deadline-${status}`).value = '';
     }
 
-    window.editTask = async function(id, currentTitle) {
+    async function editTask(id, currentTitle) {
         const newTitle = prompt('Editar título da tarefa:', currentTitle);
-        if (newTitle && newTitle.trim() !== '' && newTitle.trim() !== currentTitle) {
-            const taskDoc = doc(getTasksCollectionRef(), id);
-            await updateDoc(taskDoc, { title: newTitle.trim() });
+        if (newTitle && newTitle.trim() && newTitle.trim() !== currentTitle) {
+            await updateDoc(doc(getTasksCollectionRef(), id), { title: newTitle.trim() });
         }
     }
 
-    window.deleteTask = async function(id) {
-        // Removido o confirm() para melhor compatibilidade
-        const taskDoc = doc(getTasksCollectionRef(), id);
-        await deleteDoc(taskDoc);
+    async function deleteTask(id) {
+        if (confirm('Tem a certeza de que quer apagar esta tarefa?')) {
+            await deleteDoc(doc(getTasksCollectionRef(), id));
+        }
     }
 
-    // --- DRAG AND DROP ---
-    kanbanBoard.addEventListener('dragstart', (e) => {
+    // --- FUNÇÕES DE ARRASTAR E SOLTAR ---
+    function handleDragStart(e) {
         if (e.target.classList.contains('kanban-task')) {
             draggedItem = e.target;
             setTimeout(() => draggedItem.classList.add('dragging'), 0);
         }
-    });
+    }
 
-    kanbanBoard.addEventListener('dragend', () => {
+    function handleDragEnd() {
         if (draggedItem) {
             draggedItem.classList.remove('dragging');
             draggedItem = null;
             document.querySelectorAll('.kanban-tasks').forEach(c => c.classList.remove('drag-over'));
         }
-    });
+    }
 
-    kanbanBoard.addEventListener('dragover', (e) => {
+    function handleDragOver(e) {
         e.preventDefault();
         const column = e.target.closest('.kanban-tasks');
         if (column) {
             document.querySelectorAll('.kanban-tasks').forEach(c => c.classList.remove('drag-over'));
             column.classList.add('drag-over');
         }
-    });
+    }
     
-    kanbanBoard.addEventListener('dragleave', (e) => {
+    function handleDragLeave(e) {
         const column = e.target.closest('.kanban-tasks');
         if (column) {
            column.classList.remove('drag-over');
         }
-    });
+    }
 
-    kanbanBoard.addEventListener('drop', async (e) => {
+    async function handleDrop(e) {
         e.preventDefault();
         const targetColumn = e.target.closest('.kanban-tasks');
         if (targetColumn && draggedItem) {
             targetColumn.appendChild(draggedItem);
             const newStatus = targetColumn.getAttribute('data-status');
             const taskId = draggedItem.getAttribute('data-id');
-
-            const taskDoc = doc(getTasksCollectionRef(), taskId);
-            let updateData = { status: newStatus };
-            if (newStatus === 'done') {
-                updateData.completedAt = new Date().toISOString();
-            }
-            await updateDoc(taskDoc, updateData);
+            await updateDoc(doc(getTasksCollectionRef(), taskId), { status: newStatus });
         }
         document.querySelectorAll('.kanban-tasks').forEach(c => c.classList.remove('drag-over'));
-    });
+    }
 
     // --- LÓGICA DA IA ---
     function updateKaizenSuggestions(tasks) {
@@ -279,25 +278,8 @@
             suggestionsHTML += `<p>• Algumas tarefas em "A Fazer" estão sem responsável. Atribuí-las pode acelerar o processo.</p>`;
         }
         
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        const overdue = tasks.filter(t => {
-            if (t.status === 'done' || !t.deadline || !t.deadline.includes('/')) return false;
-            try {
-                const [day, month, year] = t.deadline.split('/');
-                const deadlineDate = new Date(`${year}-${month}-${day}`);
-                return deadlineDate < today;
-            } catch {
-                return false;
-            }
-        });
-
-        if (overdue.length > 0) {
-            suggestionsHTML += `<p><strong>• Atenção:</strong> Existem ${overdue.length} tarefa(s) com prazo vencido ou vencendo hoje!</p>`;
-        }
-
         if (doing.length > 5) {
-            suggestionsHTML += `<p>• O time está trabalhando em ${doing.length} tarefas simultaneamente. Foco em finalizar as tarefas em andamento pode aumentar a eficiência.</p>`;
+            suggestionsHTML += `<p>• O time está a trabalhar em ${doing.length} tarefas simultaneamente. Foco em finalizar as tarefas em andamento pode aumentar a eficiência.</p>`;
         }
 
         if (!suggestionsHTML) {
@@ -306,56 +288,42 @@
         kaizenSuggestions.innerHTML = suggestionsHTML;
     }
 
-    window.askKaizen = async function() {
+    async function askKaizen() {
         const question = document.getElementById('kaizen-question').value.trim();
         if (!question) return;
 
         kaizenAnswer.style.display = 'block';
-        kaizenAnswer.textContent = 'Analisando o quadro e gerando insights...';
+        kaizenAnswer.textContent = 'A analisar o quadro e a gerar insights...';
         askKaizenBtn.disabled = true;
         
-        // A API Key é deixada em branco pois será injetada pelo ambiente de execução.
         const apiKey = ""; 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-        const systemPrompt = `Você é Kaizen, uma IA assistente especialista em otimização de fluxo de trabalho usando o método Kanban. Sua personalidade é prestativa, objetiva e focada em dados. Você sempre responde em português do Brasil. Analise o estado atual do quadro Kanban e responda à pergunta do usuário.`;
-        
-        const userQuery = `Baseado neste array de tarefas em formato JSON, que representa um quadro Kanban:
-        ${JSON.stringify(currentTasks, null, 2)}
-        
-        Responda à seguinte pergunta: "${question}"`;
-
-        const payload = {
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: userQuery }] }],
-        };
+        const systemPrompt = `Você é Kaizen, uma IA assistente especialista em otimização de fluxo de trabalho usando o método Kanban. A sua personalidade é prestável, objetiva e focada em dados. Responde sempre em português do Brasil. Analise o estado atual do quadro Kanban e responda à pergunta do usuário.`;
+        const userQuery = `Baseado neste array de tarefas em formato JSON, que representa um quadro Kanban:\n${JSON.stringify(currentTasks, null, 2)}\n\nResponda à seguinte pergunta: "${question}"`;
 
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: [{ parts: [{ text: userQuery }] }],
+                })
             });
 
             if (!response.ok) throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
-
             const result = await response.json();
             const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
-            if (text) {
-                kaizenAnswer.textContent = text;
-            } else {
-                throw new Error("A resposta da IA veio em um formato inesperado ou vazia.");
-            }
+            kaizenAnswer.textContent = text || "Não foi possível obter uma resposta da IA.";
         } catch (error) {
-            console.error("Erro ao contatar a IA Kaizen:", error);
-            kaizenAnswer.textContent = "Desculpe, ocorreu um erro ao tentar obter uma resposta. Verifique o console para mais detalhes e tente novamente.";
+            console.error("Erro ao contactar a IA Kaizen:", error);
+            kaizenAnswer.textContent = "Desculpe, ocorreu um erro ao tentar obter uma resposta.";
         } finally {
             askKaizenBtn.disabled = false;
         }
     }
 
-    // --- INICIA A APLICAÇÃO ---
     initialize();
   </script>
 </body>
